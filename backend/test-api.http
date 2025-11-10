@@ -1,0 +1,305 @@
+### Archivo de pruebas para la API de Porcime
+### Puedes usar extensiones como REST Client en VS Code
+
+### Variables
+@baseUrl = http://localhost:3000/api
+@token = 
+
+###############################################
+### AUTENTICACIÓN
+###############################################
+
+### 1. Registrar nuevo usuario
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "first_name": "Juan",
+  "last_name": "Pérez",
+  "phone": "+57 300 1234567",
+  "email": "juan@test.com",
+  "password": "password123",
+  "role": "usuario"
+}
+
+### 2. Login (Guardar el token de la respuesta)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@porcime.com",
+  "password": "admin123"
+}
+
+### 3. Login con usuario creado
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "juan@test.com",
+  "password": "password123"
+}
+
+### 4. Obtener usuario actual
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{token}}
+
+###############################################
+### USUARIOS (Solo Admin)
+###############################################
+
+### 5. Listar todos los usuarios
+GET {{baseUrl}}/users
+Authorization: Bearer {{token}}
+
+### 6. Obtener usuario por ID
+GET {{baseUrl}}/users/AQUI_VA_EL_UUID
+Authorization: Bearer {{token}}
+
+### 7. Actualizar usuario
+PUT {{baseUrl}}/users/AQUI_VA_EL_UUID
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "first_name": "Juan Carlos",
+  "last_name": "Pérez López",
+  "phone": "+57 300 7654321",
+  "email": "juancarlos@test.com",
+  "role": "tecnico",
+  "is_active": true
+}
+
+### 8. Cambiar contraseña
+PUT {{baseUrl}}/users/AQUI_VA_EL_UUID/password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "currentPassword": "password123",
+  "newPassword": "newpassword456"
+}
+
+### 9. Desactivar usuario
+DELETE {{baseUrl}}/users/AQUI_VA_EL_UUID
+Authorization: Bearer {{token}}
+
+###############################################
+### CERDAS - CONSULTAS
+###############################################
+
+### 10. Listar todas las cerdas
+GET {{baseUrl}}/sows
+Authorization: Bearer {{token}}
+
+### 11. Listar cerdas con filtros
+GET {{baseUrl}}/sows?status=activa&breed=Yorkshire
+Authorization: Bearer {{token}}
+
+### 12. Obtener estadísticas
+GET {{baseUrl}}/sows/stats
+Authorization: Bearer {{token}}
+
+### 13. Obtener cerda por ID
+GET {{baseUrl}}/sows/AQUI_VA_EL_UUID
+Authorization: Bearer {{token}}
+
+### 14. Buscar cerda por arete
+GET {{baseUrl}}/sows/ear-tag/A001
+Authorization: Bearer {{token}}
+
+###############################################
+### CERDAS - CREAR (Admin/Técnico)
+###############################################
+
+### 15. Crear nueva cerda - Ejemplo completo
+POST {{baseUrl}}/sows
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "ear_tag": "A001",
+  "id_type": "arete",
+  "alias": "La Rubia",
+  "breed": "Yorkshire",
+  "genetic_line": "Línea Premium",
+  "generation": 2,
+  "sire_tag": "P001",
+  "dam_tag": "M001",
+  "birth_date": "2023-01-15",
+  "entry_date": "2023-03-01",
+  "origin": "propia",
+  "status": "activa",
+  "location": "Corral 5",
+  "farm_name": "Granja Principal",
+  "current_weight": 180.5,
+  "min_service_weight": 120.0,
+  "body_condition": 3.5,
+  "last_weight_date": "2024-01-01",
+  "parity_count": 2,
+  "total_piglets_born": 24,
+  "total_piglets_alive": 22,
+  "total_piglets_dead": 2,
+  "total_abortions": 0,
+  "avg_piglets_alive": 11.0,
+  "reproductive_status": "gestante",
+  "last_service_date": "2023-12-01",
+  "expected_farrowing_date": "2024-04-01",
+  "photo_url": "https://example.com/photo.jpg"
+}
+
+### 16. Crear cerda - Campos mínimos requeridos
+POST {{baseUrl}}/sows
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "ear_tag": "A002",
+  "id_type": "arete",
+  "breed": "Landrace",
+  "birth_date": "2023-02-20",
+  "entry_date": "2023-04-01",
+  "farm_name": "Granja Principal",
+  "current_weight": 165.0,
+  "body_condition": 3.0
+}
+
+### 17. Crear otra cerda
+POST {{baseUrl}}/sows
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "ear_tag": "A003",
+  "id_type": "rfid",
+  "alias": "La Negra",
+  "breed": "Duroc",
+  "birth_date": "2023-03-10",
+  "entry_date": "2023-05-01",
+  "origin": "comprada",
+  "status": "activa",
+  "farm_name": "Granja Principal",
+  "current_weight": 175.0,
+  "body_condition": 3.2,
+  "reproductive_status": "vacia"
+}
+
+###############################################
+### CERDAS - ACTUALIZAR (Admin/Técnico)
+###############################################
+
+### 18. Actualizar cerda completamente
+PUT {{baseUrl}}/sows/AQUI_VA_EL_UUID
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "ear_tag": "A001",
+  "id_type": "arete",
+  "alias": "La Rubia Modificada",
+  "breed": "Yorkshire",
+  "genetic_line": "Línea Premium Plus",
+  "generation": 2,
+  "birth_date": "2023-01-15",
+  "entry_date": "2023-03-01",
+  "origin": "propia",
+  "status": "activa",
+  "location": "Corral 6",
+  "farm_name": "Granja Principal",
+  "current_weight": 190.0,
+  "min_service_weight": 120.0,
+  "body_condition": 3.8,
+  "parity_count": 3,
+  "total_piglets_born": 36,
+  "total_piglets_alive": 34,
+  "total_piglets_dead": 2,
+  "reproductive_status": "lactante"
+}
+
+### 19. Actualizar campos específicos (PATCH)
+PATCH {{baseUrl}}/sows/AQUI_VA_EL_UUID
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "current_weight": 185.0,
+  "body_condition": 3.7,
+  "reproductive_status": "gestante"
+}
+
+### 20. Actualizar peso y condición corporal
+PATCH {{baseUrl}}/sows/AQUI_VA_EL_UUID
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "current_weight": 188.5,
+  "body_condition": 3.9,
+  "last_weight_date": "2024-11-09"
+}
+
+###############################################
+### CERDAS - ELIMINAR
+###############################################
+
+### 21. Descartar cerda (soft delete)
+DELETE {{baseUrl}}/sows/AQUI_VA_EL_UUID
+Authorization: Bearer {{token}}
+
+### 22. Eliminar cerda permanentemente (Solo Admin)
+DELETE {{baseUrl}}/sows/AQUI_VA_EL_UUID/permanent
+Authorization: Bearer {{token}}
+
+###############################################
+### PRUEBAS DE ERROR
+###############################################
+
+### 23. Login con credenciales incorrectas
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "wrong@email.com",
+  "password": "wrongpassword"
+}
+
+### 24. Crear cerda sin token (debe fallar)
+POST {{baseUrl}}/sows
+Content-Type: application/json
+
+{
+  "ear_tag": "TEST001",
+  "id_type": "arete",
+  "breed": "Yorkshire",
+  "birth_date": "2023-01-01",
+  "entry_date": "2023-02-01",
+  "farm_name": "Test Farm",
+  "current_weight": 150.0,
+  "body_condition": 3.0
+}
+
+### 25. Crear cerda con arete duplicado (debe fallar)
+POST {{baseUrl}}/sows
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "ear_tag": "A001",
+  "id_type": "arete",
+  "breed": "Yorkshire",
+  "birth_date": "2023-01-01",
+  "entry_date": "2023-02-01",
+  "farm_name": "Test Farm",
+  "current_weight": 150.0,
+  "body_condition": 3.0
+}
+
+### 26. Crear cerda sin campos obligatorios (debe fallar)
+POST {{baseUrl}}/sows
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "ear_tag": "TEST002",
+  "id_type": "arete"
+}

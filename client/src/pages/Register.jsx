@@ -2,7 +2,6 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Link, useNavigate } from "react-router-dom"
 import { Eye, EyeOff } from "lucide-react"
 import AuthLayout from "@/components/AuthLayout"
@@ -13,15 +12,12 @@ import { useAuth } from "@/context/AuthContext"
 
 export default function RegisterPage() {
   const { register: registerUser } = useAuth();
-  const [idCardValue, setIdCardValue] = useState("")
-  const [code, setCode] = useState("")
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [phone, setPhone] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [role, setRole] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [error, setError] = useState("")
@@ -32,26 +28,16 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    console.log("Formulario enviado - Iniciando proceso de registro directo")
+    console.log("Formulario enviado - Iniciando proceso de registro")
     
     // Limpiar estado anterior
     setError("")
     setIsLoading(true)
     
     try {
-      // Validaciones básicas - todos los campos son obligatorios según el modelo
-      if (!idCardValue || !code || !firstName || !lastName || !phone || !email || !password || !confirmPassword || !role) {
-        throw new Error("Todos los campos son obligatorios")
-      }
-      
-      // Validar formato de cédula 
-      if (idCardValue.length < 6 || idCardValue.length > 20) {
-        throw new Error("La cédula debe tener entre 6 y 20 caracteres")
-      }
-      
-      // Validar código
-      if (code.length < 3 || code.length > 10) {
-        throw new Error("El código debe tener entre 3 y 10 caracteres")
+      // Validaciones básicas
+      if (!firstName || !lastName || !email || !password || !confirmPassword) {
+        throw new Error("Los campos nombres, apellidos, email y contraseña son obligatorios")
       }
       
       // Validar formato de email
@@ -70,21 +56,13 @@ export default function RegisterPage() {
         throw new Error("Las contraseñas no coinciden")
       }
       
-      // Validar teléfono (obligatorio según el modelo)
-      if (!phone || !/^[+]?[0-9]{10,15}$/.test(phone)) {
-        throw new Error("El formato del teléfono no es válido (debe tener entre 10 y 15 dígitos)")
-      }
-      
-      // Preparar datos según la estructura exacta del modelo backend
+      // Preparar datos según la estructura del backend
       const userData = {
-        idCard: idCardValue,
-        code: code,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
-        phone: phone || "", 
+        phone: phone.trim() || "", 
         email: email.toLowerCase().trim(),
-        password: password,
-        role: role
+        password: password
       }
       
       console.log("Datos preparados para enviar al backend:", {
@@ -92,37 +70,26 @@ export default function RegisterPage() {
         password: "******"
       })
       
-      
       console.log("Enviando solicitud de registro...")
       const response = await registerUser(userData)
       
       console.log("Respuesta del servidor:", response)
       
-     
       console.log("¡Registro exitoso!")
       setRegistrationSuccess(true)
       
       // Limpiar el formulario
-      setIdCardValue("")
-      setCode("")
       setFirstName("")
       setLastName("")
       setPhone("")
       setEmail("")
       setPassword("")
       setConfirmPassword("")
-      setRole("")
       
-      // Almacenar el indicador de registro exitoso
-      localStorage.setItem("registered", "true")
-      
-      // Redirigir después de mostrar el mensaje
+      // Redirigir al login después de mostrar el mensaje
       setTimeout(() => {
         console.log("Redirigiendo a login...")
-        // Limpiar cualquier estado de autenticación antes de redirigir
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('user');
-        navigate("/login?registered=true", { replace: true })
+        navigate("/login", { replace: true })
       }, 2000)
       
     } catch (error) {
@@ -202,34 +169,6 @@ export default function RegisterPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <Label htmlFor="idCard" className="text-sm font-semibold text-[#1a2e02] mb-2 block">
-              Cédula / Documento de Identidad
-            </Label>
-            <Input
-              id="idCard"
-              value={idCardValue}
-              onChange={(e) => setIdCardValue(e.target.value)}
-              placeholder="Ingrese su número de cédula"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6b7c45] focus:border-transparent transition-all duration-200"
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="code" className="text-sm font-semibold text-[#1a2e02] mb-2 block">
-              Código de Usuario
-            </Label>
-            <Input
-              id="code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="Ingrese un código único (3-10 caracteres)"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6b7c45] focus:border-transparent transition-all duration-200"
-              required
-            />
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="firstName" className="text-sm font-semibold text-[#1a2e02] mb-2 block">
@@ -261,35 +200,15 @@ export default function RegisterPage() {
 
           <div>
             <Label htmlFor="telefono" className="text-sm font-semibold text-[#1a2e02] mb-2 block">
-              Teléfono
+              Teléfono (opcional)
             </Label>
             <Input
               id="telefono"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="Ingrese su teléfono (obligatorio)"
+              placeholder="Ingrese su teléfono"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6b7c45] focus:border-transparent transition-all duration-200"
-              required
             />
-          </div>
-
-          <div>
-            <Label htmlFor="role" className="text-sm font-semibold text-[#1a2e02] mb-2 block">
-              Tipo de Usuario
-            </Label>
-            <Select value={role} onValueChange={setRole} required>
-              <SelectTrigger className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6b7c45] focus:border-transparent transition-all duration-200">
-                <SelectValue placeholder="Seleccione el tipo de usuario" />
-              </SelectTrigger>
-              <SelectContent className="bg-white">
-                <SelectItem value="ADMIN" className="cursor-pointer hover:bg-gray-100">
-                  Administrador
-                </SelectItem>
-                <SelectItem value="PRACTICANTE" className="cursor-pointer hover:bg-gray-100">
-                  Practicante
-                </SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           <div>

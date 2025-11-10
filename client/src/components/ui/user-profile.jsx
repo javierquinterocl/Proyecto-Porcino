@@ -15,19 +15,8 @@ import { useAuth } from "@/context/AuthContext"
 
 // Interface extendida para el estado userInfo
 
-// Datos de ejemplo para el usuario
-const userData = {
-  id: "USR001",
-  firstName: "Pedro",
-  lastName: "Agropecuario",
-  email: "pedro@caprisystem.com",
-  phone: "555-123-4567",
-  address: "Calle Principal 123, Ciudad",
-  role: "Administrador",
-  joinDate: "2020-05-15",
-  lastLogin: "2023-04-15 08:30",
-  avatar: "/placeholder.svg?height=128&width=128",
-}
+// NOTA: Los datos del usuario se obtienen del AuthContext
+// Los datos de ejemplo se eliminaron para usar solo datos reales
 
 // Datos de ejemplo para actividad reciente
 const recentActivity = [
@@ -311,7 +300,6 @@ export function UserProfile() {
                   {userDisplayData.name}
                 </CardTitle>
                 <CardDescription>{userDisplayData.email}</CardDescription>
-                <Badge className="mt-2">{user?.role || "Usuario"}</Badge>
               </div>
             </CardHeader>
             <CardContent>

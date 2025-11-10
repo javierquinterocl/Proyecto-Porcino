@@ -148,9 +148,16 @@ export function Sidebar() {
               <CollapsibleContent className="pl-6 space-y-1">
                 <NavItem
                   icon={<PiggyBank className="h-5 w-5" />}
-                  label="Registro Porcino"
-                  href="/sows/basic-data"
-                  isActive={pathname === "/sows/basic-data"}
+                  label="Nueva Cerda"
+                  href="/sows/register"
+                  isActive={pathname === "/sows/register"}
+                  collapsed={collapsed}
+                />
+                <NavItem
+                  icon={<ClipboardList className="h-5 w-5" />}
+                  label="Lista de Reproductoras"
+                  href="/sows/list"
+                  isActive={pathname === "/sows/list"}
                   collapsed={collapsed}
                 />
                 <NavItem

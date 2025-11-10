@@ -551,13 +551,13 @@ export default function ProductOutputsListPage() {
               <select
                 id="create-userId"
                 value={formData.userId}
-                onChange={(e) => handleFormChange('userId', e.target.value)}
+                onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#6b7c45] focus:border-transparent ${formErrors.userId ? 'border-red-500' : 'border-gray-300'}`}
               >
                 <option value="">Seleccionar usuario</option>
                 {users.map((user) => (
                   <option key={user.id} value={user.id}>
-                    {user.firstName} {user.lastName} - {user.role}
+                    {user.firstName} {user.lastName}
                   </option>
                 ))}
               </select>
@@ -632,13 +632,13 @@ export default function ProductOutputsListPage() {
               <select
                 id="edit-userId"
                 value={formData.userId}
-                onChange={(e) => handleFormChange('userId', e.target.value)}
+                onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#6b7c45] focus:border-transparent ${formErrors.userId ? 'border-red-500' : 'border-gray-300'}`}
               >
                 <option value="">Seleccionar usuario</option>
                 {users.map((user) => (
                   <option key={user.id} value={user.id}>
-                    {user.firstName} {user.lastName} - {user.role}
+                    {user.firstName} {user.lastName}
                   </option>
                 ))}
               </select>

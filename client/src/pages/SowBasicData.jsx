@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { pigService } from "@/services/api";
 import {
@@ -68,6 +69,8 @@ const formatDate = (value) => {
 
 export default function SowBasicDataPage() {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  
   const [sows, setSows] = useState([]);
   const [selectedSowId, setSelectedSowId] = useState("");
   const [selectedSow, setSelectedSow] = useState(null);
@@ -376,7 +379,7 @@ export default function SowBasicDataPage() {
             Actualizar
           </Button>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
+        <Button onClick={() => navigate("/sows/register")}>
           <Plus className="mr-2 h-4 w-4" /> Registrar cerda
         </Button>
       </div>

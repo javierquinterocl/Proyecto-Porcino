@@ -61,19 +61,19 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoading(true);
       
-      
       const registrationData = {
-        idCard: userData.idCard?.trim(),
-        code: userData.code?.trim(),
         firstName: userData.firstName?.trim(),
         lastName: userData.lastName?.trim(),
         email: userData.email?.toLowerCase().trim(),
-        phone: userData.phone?.trim() || "", 
+        phone: userData.phone?.trim() || "",
         password: userData.password
       };
       
+      // El servicio register devuelve { user, token }
       const response = await userService.register(registrationData);
       
+      // NO autenticar automáticamente - el usuario debe hacer login
+      // Solo retornar la respuesta
       console.log('Usuario registrado exitosamente:', response);
       return response;
     } catch (error) {
@@ -89,23 +89,17 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoading(true);
       
-      // Usar el servicio real de API para login
+      // El servicio login devuelve { user, token }
       const response = await userService.login({
         email: credentials.email.toLowerCase(),
         password: credentials.password
       });
       
-      // Guardar token y datos de usuario
-      if (response.token) {
-        localStorage.setItem('authToken', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
+      // Actualizar estado local
+      if (response.user && response.token) {
         setUser(response.user);
         setIsAuthenticated(true);
-        
         console.log('Login exitoso', response.user);
-        
-        
-        
       } else {
         throw new Error('No se recibió un token de autenticación válido');
       }
@@ -148,7 +142,7 @@ export const AuthProvider = ({ children }) => {
         firstName: userData.firstName?.trim(),
         lastName: userData.lastName?.trim(),
         email: userData.email?.toLowerCase().trim(),
-        phone: userData.phone?.trim() || "" 
+        phone: userData.phone?.trim() || ""
       };
       
       const response = await userService.updateUser(userId, updateData);
@@ -157,7 +151,6 @@ export const AuthProvider = ({ children }) => {
       if (user && user.id === userId) {
         const updatedUser = { ...user, ...response };
         setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
       }
       
       return response;

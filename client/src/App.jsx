@@ -12,6 +12,8 @@ import PigsListPage from './pages/PigsList'
 import SowBasicDataPage from './pages/SowBasicData'
 import SowReproductiveHistoryPage from './pages/SowReproductiveHistory'
 import SowPigletsPage from './pages/SowPiglets'
+import SowRegistrationPage from './pages/SowRegistration'
+import ReproductiveListPage from './pages/ReproductiveList'
 import CriticalPeriodsPage from './pages/CriticalPeriodsPage'
 import ReproductiveParametersPage from './pages/ReproductiveParametersPage'
 import Dashboard from './pages/Dashboard'
@@ -39,7 +41,9 @@ function App() {
             <Route path="/products" element={<ProductsListPage />} />
             <Route path="/product-outputs" element={<ProductOutputsListPage />} />
             <Route path="/suppliers" element={<SuppliersListPage/>} />
-            <Route path="/sows" element={<Navigate to="/sows/basic-data" replace />} />
+            <Route path="/sows" element={<Navigate to="/sows/list" replace />} />
+            <Route path="/sows/register" element={<SowRegistrationPage />} />
+            <Route path="/sows/list" element={<ReproductiveListPage />} />
             <Route path="/sows/basic-data" element={<SowBasicDataPage />} />
             <Route path="/sows/reproductive-history" element={<SowReproductiveHistoryPage />} />
             <Route path="/sows/piglets" element={<SowPigletsPage />} />

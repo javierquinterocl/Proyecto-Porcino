@@ -1,20 +1,26 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
-import { userService, supplierService, productService, pigService, reproductiveDataService } from "@/services/api";
+import { userService, pigService } from "@/services/api";
 import { useToast } from "@/components/ui/use-toast";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, PiggyBank, Activity, Heart, AlertCircle, Baby } from "lucide-react";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [stats, setStats] = useState({
     totalUsers: 0,
-    totalSuppliers: 0,
-    totalPigs: 0,
-    totalProducts: 0
+    totalSows: 0,
+    activeSows: 0,
+    pregnantSows: 0
   });
-  const [reproductiveParams, setReproductiveParams] = useState(null);
+  const [sowStats, setSowStats] = useState({
+    byBreed: {},
+    byStatus: {},
+    byReproductiveStatus: {},
+    averageWeight: 0,
+    totalParturitions: 0
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,50 +28,67 @@ export default function Dashboard() {
       try {
         setLoading(true);
         
-        // Cargar todas las estadísticas en paralelo
-        const [users, suppliers, pigs, products] = await Promise.all([
+        // Cargar usuarios y cerdas
+        const [users, sows] = await Promise.all([
           userService.getAllUsers().catch((err) => {
             console.log('Error loading users:', err);
             return [];
           }),
-          supplierService.getAllSuppliers().catch((err) => {
-            console.log('Error loading suppliers:', err);
-            return [];
-          }),
-          pigService.getAllPigs().catch((err) => {
-            console.log('Error loading pigs:', err);
-            return [];
-          }),
-          productService.getAllProducts().catch((err) => {
-            console.log('Error loading products:', err);
+          pigService.getAllSows().catch((err) => {
+            console.log('Error loading sows:', err);
             return [];
           })
         ]);
 
-        console.log('Dashboard data:', {
-          users,
-          suppliers,
-          pigs,
-          products
+        // Calcular estadísticas de cerdas
+        const activeSows = sows.filter(s => s.status === 'Activa').length;
+        const pregnantSows = sows.filter(s => s.reproductive_status === 'Gestante').length;
+        
+        // Estadísticas por raza
+        const breedCounts = {};
+        sows.forEach(sow => {
+          const breed = sow.breed || 'Sin especificar';
+          breedCounts[breed] = (breedCounts[breed] || 0) + 1;
         });
 
-        const newStats = {
+        // Estadísticas por estado
+        const statusCounts = {};
+        sows.forEach(sow => {
+          const status = sow.status || 'Sin especificar';
+          statusCounts[status] = (statusCounts[status] || 0) + 1;
+        });
+
+        // Estadísticas por estado reproductivo
+        const reproductiveStatusCounts = {};
+        sows.forEach(sow => {
+          const repStatus = sow.reproductive_status || 'Sin especificar';
+          reproductiveStatusCounts[repStatus] = (reproductiveStatusCounts[repStatus] || 0) + 1;
+        });
+
+        // Peso promedio (excluyendo nulos)
+        const sowsWithWeight = sows.filter(s => s.weight && s.weight > 0);
+        const averageWeight = sowsWithWeight.length > 0 
+          ? sowsWithWeight.reduce((sum, s) => sum + Number(s.weight), 0) / sowsWithWeight.length 
+          : 0;
+
+        // Total de partos
+        const totalParturitions = sows.reduce((sum, s) => sum + (Number(s.parturitions) || 0), 0);
+
+        setStats({
           totalUsers: users?.length || 0,
-          totalSuppliers: suppliers?.length || 0,
-          totalPigs: pigs?.length || 0,
-          totalProducts: products?.length || 0
-        };
+          totalSows: sows?.length || 0,
+          activeSows,
+          pregnantSows
+        });
 
-        console.log('Setting stats to:', newStats);
-        setStats(newStats);
+        setSowStats({
+          byBreed: breedCounts,
+          byStatus: statusCounts,
+          byReproductiveStatus: reproductiveStatusCounts,
+          averageWeight: averageWeight,
+          totalParturitions
+        });
 
-        // Cargar parámetros reproductivos
-        try {
-          const params = await reproductiveDataService.getReproductiveParameters();
-          setReproductiveParams(params);
-        } catch (err) {
-          console.log('Error loading reproductive parameters:', err);
-        }
       } catch (error) {
         console.error('Error loading dashboard stats:', error);
         toast({
@@ -93,64 +116,68 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-white">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
+            <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
+              <PiggyBank className="h-4 w-4" />
+              Total Cerdas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-pink-600">
+              {loading ? '...' : stats.totalSows}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Cerdas registradas
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Cerdas Activas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-green-600">
+              {loading ? '...' : stats.activeSows}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Estado activo
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
+              <Heart className="h-4 w-4" />
+              Cerdas Gestantes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-purple-600">
+              {loading ? '...' : stats.pregnantSows}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              En gestación
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
               Empleados
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-[#1a2e02]">
+            <div className="text-3xl font-bold text-blue-600">
               {loading ? '...' : stats.totalUsers}
             </div>
             <p className="text-xs text-gray-500 mt-1">
               Total registrados
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Proveedores
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-[#1a2e02]">
-              {loading ? '...' : stats.totalSuppliers}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Proveedores activos
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Registro Porcino
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-[#1a2e02]">
-              {loading ? '...' : stats.totalPigs}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Cerdos registrados
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Productos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-[#1a2e02]">
-              {loading ? '...' : stats.totalProducts}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              En inventario actual
             </p>
           </CardContent>
         </Card>
@@ -159,35 +186,45 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="bg-white">
           <CardHeader>
-            <CardTitle>Actividad Reciente</CardTitle>
+            <CardTitle>Resumen de Estados</CardTitle>
+            <CardDescription>Vista rápida del lote reproductor</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between items-center border-b pb-2">
                 <div>
-                  <p className="font-medium">Nueva venta registrada</p>
-                  <p className="text-sm text-gray-500">Hace 3 horas</p>
+                  <p className="font-medium flex items-center gap-2">
+                    <PiggyBank className="h-4 w-4 text-pink-600" />
+                    Total de Cerdas
+                  </p>
+                  <p className="text-sm text-gray-500">Registradas en el sistema</p>
                 </div>
-                <span className="text-sm bg-green-100 text-green-800 py-1 px-2 rounded-full">
-                  Venta
+                <span className="text-2xl font-bold text-pink-600">
+                  {loading ? '...' : stats.totalSows}
                 </span>
               </div>
               <div className="flex justify-between items-center border-b pb-2">
                 <div>
-                  <p className="font-medium">Ingreso de inventario</p>
-                  <p className="text-sm text-gray-500">Hace 5 horas</p>
+                  <p className="font-medium flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-green-600" />
+                    Cerdas Activas
+                  </p>
+                  <p className="text-sm text-gray-500">En producción</p>
                 </div>
-                <span className="text-sm bg-blue-100 text-blue-800 py-1 px-2 rounded-full">
-                  Inventario
+                <span className="text-2xl font-bold text-green-600">
+                  {loading ? '...' : stats.activeSows}
                 </span>
               </div>
               <div className="flex justify-between items-center border-b pb-2">
                 <div>
-                  <p className="font-medium">Nuevo usuario registrado</p>
-                  <p className="text-sm text-gray-500">Hace 1 día</p>
+                  <p className="font-medium flex items-center gap-2">
+                    <Heart className="h-4 w-4 text-purple-600" />
+                    Cerdas Gestantes
+                  </p>
+                  <p className="text-sm text-gray-500">En período de gestación</p>
                 </div>
-                <span className="text-sm bg-purple-100 text-purple-800 py-1 px-2 rounded-full">
-                  Usuario
+                <span className="text-2xl font-bold text-purple-600">
+                  {loading ? '...' : stats.pregnantSows}
                 </span>
               </div>
             </div>
@@ -196,35 +233,36 @@ export default function Dashboard() {
 
         <Card className="bg-white">
           <CardHeader>
-            <CardTitle>Recordatorios</CardTitle>
+            <CardTitle>Indicadores Clave</CardTitle>
+            <CardDescription>Métricas importantes del lote</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between items-center border-b pb-2">
                 <div>
-                  <p className="font-medium">Vacunación programada</p>
-                  <p className="text-sm text-gray-500">Mañana, 9:00 AM</p>
+                  <p className="font-medium">Peso Promedio</p>
+                  <p className="text-sm text-gray-500">De todas las cerdas</p>
                 </div>
-                <span className="text-sm bg-yellow-100 text-yellow-800 py-1 px-2 rounded-full">
-                  Urgente
+                <span className="text-2xl font-bold text-blue-600">
+                  {loading ? '...' : sowStats.averageWeight > 0 ? `${sowStats.averageWeight.toFixed(1)} kg` : 'N/A'}
                 </span>
               </div>
               <div className="flex justify-between items-center border-b pb-2">
                 <div>
-                  <p className="font-medium">Pago a proveedor</p>
-                  <p className="text-sm text-gray-500">En 3 días</p>
+                  <p className="font-medium">Total Partos</p>
+                  <p className="text-sm text-gray-500">Partos registrados</p>
                 </div>
-                <span className="text-sm bg-orange-100 text-orange-800 py-1 px-2 rounded-full">
-                  Pendiente
+                <span className="text-2xl font-bold text-orange-600">
+                  {loading ? '...' : sowStats.totalParturitions}
                 </span>
               </div>
               <div className="flex justify-between items-center border-b pb-2">
                 <div>
-                  <p className="font-medium">Mantenimiento de equipos</p>
-                  <p className="text-sm text-gray-500">En 7 días</p>
+                  <p className="font-medium">Promedio Partos/Cerda</p>
+                  <p className="text-sm text-gray-500">Productividad reproductiva</p>
                 </div>
-                <span className="text-sm bg-gray-100 text-gray-800 py-1 px-2 rounded-full">
-                  Programado
+                <span className="text-2xl font-bold text-teal-600">
+                  {loading ? '...' : stats.totalSows > 0 ? (sowStats.totalParturitions / stats.totalSows).toFixed(2) : 'N/A'}
                 </span>
               </div>
             </div>
@@ -236,159 +274,197 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="bg-white">
           <CardHeader>
-            <CardTitle>Parámetros Reproductivos - Granja</CardTitle>
-            <CardDescription>Indicadores clave de producción reproductiva</CardDescription>
+            <CardTitle>Estadísticas por Estado Reproductivo</CardTitle>
+            <CardDescription>Distribución de cerdas según su estado reproductivo</CardDescription>
           </CardHeader>
           <CardContent>
-            {reproductiveParams ? (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Tasa de Fertilidad</span>
-                    <div className="flex items-center gap-2">
-                      {reproductiveParams.farm.fertilityRate >= 87 ? (
-                        <TrendingUp className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <TrendingDown className="h-4 w-4 text-red-600" />
-                      )}
-                      <span className="font-bold">{reproductiveParams.farm.fertilityRate.toFixed(1)}%</span>
-                    </div>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div
-                      className={`h-2.5 rounded-full ${reproductiveParams.farm.fertilityRate >= 87 ? 'bg-green-600' : 'bg-red-500'}`}
-                      style={{ width: `${Math.min(reproductiveParams.farm.fertilityRate, 100)}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500">Objetivo: 87-95%</p>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Tasa de Repeticiones</span>
-                    <div className="flex items-center gap-2">
-                      {reproductiveParams.farm.repeatRate <= 15 ? (
-                        <TrendingDown className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <TrendingUp className="h-4 w-4 text-red-600" />
-                      )}
-                      <span className="font-bold">{reproductiveParams.farm.repeatRate.toFixed(1)}%</span>
-                    </div>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div
-                      className={`h-2.5 rounded-full ${reproductiveParams.farm.repeatRate <= 15 ? 'bg-green-600' : 'bg-red-500'}`}
-                      style={{ width: `${Math.min(reproductiveParams.farm.repeatRate * 2, 100)}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500">Objetivo: &lt;15%</p>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Tasa de Abortos</span>
-                    <div className="flex items-center gap-2">
-                      {reproductiveParams.farm.abortionRate <= 3 ? (
-                        <TrendingDown className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <TrendingUp className="h-4 w-4 text-red-600" />
-                      )}
-                      <span className="font-bold">{reproductiveParams.farm.abortionRate.toFixed(1)}%</span>
-                    </div>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div
-                      className={`h-2.5 rounded-full ${reproductiveParams.farm.abortionRate <= 3 ? 'bg-green-600' : 'bg-red-500'}`}
-                      style={{ width: `${Math.min(reproductiveParams.farm.abortionRate * 10, 100)}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500">Objetivo: &lt;2-4%</p>
-                </div>
-              </div>
+            {loading ? (
+              <div className="text-sm text-gray-500">Cargando estadísticas...</div>
             ) : (
-              <div className="text-sm text-gray-500">Cargando parámetros...</div>
+              <div className="space-y-4">
+                {Object.entries(sowStats.byReproductiveStatus).length > 0 ? (
+                  Object.entries(sowStats.byReproductiveStatus).map(([status, count]) => {
+                    const percentage = stats.totalSows > 0 ? ((count / stats.totalSows) * 100).toFixed(1) : 0;
+                    const statusColors = {
+                      'Vacía': 'bg-gray-400',
+                      'Gestante': 'bg-purple-500',
+                      'Lactante': 'bg-blue-500',
+                      'Destetada': 'bg-green-500',
+                      'Pre-cubrición': 'bg-yellow-500'
+                    };
+                    const color = statusColors[status] || 'bg-gray-400';
+                    
+                    return (
+                      <div key={status} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">{status}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">{count} cerdas</span>
+                            <span className="font-bold">{percentage}%</span>
+                          </div>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                          <div
+                            className={`${color} h-2.5 rounded-full`}
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-sm text-gray-500">No hay datos disponibles</p>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>
 
         <Card className="bg-white">
           <CardHeader>
-            <CardTitle>Producción Mensual - Lechones</CardTitle>
-            <CardDescription>Evolución de nacimientos y destetes</CardDescription>
+            <CardTitle>Estadísticas por Estado General</CardTitle>
+            <CardDescription>Distribución de cerdas según su estado general</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {/* Gráfica simple de barras */}
-              <div className="space-y-2">
-                <div className="flex items-end justify-between h-48 gap-2">
-                  {['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'].map((month, index) => {
-                    const height = [85, 92, 78, 95, 88, 100][index];
-                    const height2 = [75, 82, 70, 85, 78, 90][index];
+            {loading ? (
+              <div className="text-sm text-gray-500">Cargando estadísticas...</div>
+            ) : (
+              <div className="space-y-4">
+                {Object.entries(sowStats.byStatus).length > 0 ? (
+                  Object.entries(sowStats.byStatus).map(([status, count]) => {
+                    const percentage = stats.totalSows > 0 ? ((count / stats.totalSows) * 100).toFixed(1) : 0;
+                    const statusColors = {
+                      'Activa': 'bg-green-500',
+                      'Inactiva': 'bg-red-500',
+                      'Descarte': 'bg-orange-500',
+                      'Vendida': 'bg-blue-500'
+                    };
+                    const color = statusColors[status] || 'bg-gray-400';
+                    
                     return (
-                      <div key={month} className="flex flex-col items-center gap-1 flex-1">
-                        <div className="w-full relative h-full flex items-end justify-center gap-1">
+                      <div key={status} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">{status}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">{count} cerdas</span>
+                            <span className="font-bold">{percentage}%</span>
+                          </div>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
                           <div
-                            className="w-full bg-[#6b7c45] rounded-t"
-                            style={{ height: `${height}%` }}
-                            title={`Nacidos: ${height}`}
-                          />
-                          <div
-                            className="w-full bg-[#8fa063] rounded-t"
-                            style={{ height: `${height2}%` }}
-                            title={`Destetados: ${height2}`}
+                            className={`${color} h-2.5 rounded-full`}
+                            style={{ width: `${percentage}%` }}
                           />
                         </div>
-                        <span className="text-xs text-gray-600">{month}</span>
                       </div>
                     );
-                  })}
-                </div>
-                <div className="flex gap-4 justify-center mt-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-[#6b7c45] rounded" />
-                    <span className="text-xs text-gray-600">Nacidos</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-[#8fa063] rounded" />
-                    <span className="text-xs text-gray-600">Destetados</span>
-                  </div>
-                </div>
+                  })
+                ) : (
+                  <p className="text-sm text-gray-500">No hay datos disponibles</p>
+                )}
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Gráfica de distribución por raza */}
-      <Card className="bg-white">
-        <CardHeader>
-          <CardTitle>Distribución de Cerdas por Raza</CardTitle>
-          <CardDescription>Composición genética del lote reproductor</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { name: 'Large White', value: 45, color: 'bg-blue-500' },
-              { name: 'Landrace', value: 30, color: 'bg-green-500' },
-              { name: 'Duroc', value: 20, color: 'bg-yellow-500' },
-              { name: 'Otras', value: 5, color: 'bg-gray-500' },
-            ].map((breed) => (
-              <div key={breed.name} className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">{breed.name}</span>
-                  <span className="text-sm font-bold">{breed.value}%</span>
+      {/* Métricas adicionales */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="bg-white">
+          <CardHeader>
+            <CardTitle>Métricas de Producción</CardTitle>
+            <CardDescription>Indicadores clave del lote reproductor</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="text-sm text-gray-500">Cargando métricas...</div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-4 bg-pink-50 rounded-lg">
+                  <div>
+                    <p className="text-sm text-gray-600">Peso Promedio</p>
+                    <p className="text-2xl font-bold text-pink-600">
+                      {sowStats.averageWeight > 0 ? sowStats.averageWeight.toFixed(1) : '0'} kg
+                    </p>
+                  </div>
+                  <TrendingUp className="h-8 w-8 text-pink-600" />
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div
-                    className={`${breed.color} h-3 rounded-full`}
-                    style={{ width: `${breed.value}%` }}
-                  />
+                
+                <div className="flex justify-between items-center p-4 bg-purple-50 rounded-lg">
+                  <div>
+                    <p className="text-sm text-gray-600">Total de Partos Registrados</p>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {sowStats.totalParturitions}
+                    </p>
+                  </div>
+                  <Baby className="h-8 w-8 text-purple-600" />
+                </div>
+
+                <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                  <div>
+                    <p className="text-sm text-gray-600">Promedio Partos/Cerda</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {stats.totalSows > 0 ? (sowStats.totalParturitions / stats.totalSows).toFixed(2) : '0'}
+                    </p>
+                  </div>
+                  <Activity className="h-8 w-8 text-green-600" />
                 </div>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white">
+          <CardHeader>
+            <CardTitle>Distribución de Cerdas por Raza</CardTitle>
+            <CardDescription>Composición genética del lote reproductor</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="text-sm text-gray-500">Cargando distribución...</div>
+            ) : (
+              <div className="space-y-4">
+                {Object.entries(sowStats.byBreed).length > 0 ? (
+                  Object.entries(sowStats.byBreed).map(([breed, count], index) => {
+                    const percentage = stats.totalSows > 0 ? ((count / stats.totalSows) * 100).toFixed(1) : 0;
+                    const colors = [
+                      'bg-blue-500',
+                      'bg-green-500',
+                      'bg-yellow-500',
+                      'bg-purple-500',
+                      'bg-red-500',
+                      'bg-indigo-500',
+                      'bg-orange-500',
+                      'bg-teal-500'
+                    ];
+                    const color = colors[index % colors.length];
+                    
+                    return (
+                      <div key={breed} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">{breed}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">{count} cerdas</span>
+                            <span className="font-bold">{percentage}%</span>
+                          </div>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div
+                            className={`${color} h-3 rounded-full`}
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-sm text-gray-500">No hay datos disponibles</p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
