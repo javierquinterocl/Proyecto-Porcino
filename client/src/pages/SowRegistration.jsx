@@ -106,11 +106,15 @@ export default function SowRegistration() {
   const uploadImageToServer = async (file) => {
     setIsUploadingImage(true);
     try {
-      const response = await pigService.uploadPhoto(file);
+      const photoUrl = await pigService.uploadPhoto(file);
       
-      if (response.success && response.data.photo_url) {
+      console.log('Photo URL recibida:', photoUrl ? 'IMAGE_DATA_RECEIVED' : 'NO_DATA');
+      
+      if (photoUrl) {
         // Guardar la URL base64 en el formulario
-        handleInputChange("photo_url", response.data.photo_url);
+        handleInputChange("photo_url", photoUrl);
+        
+        console.log('Photo URL guardada en formData');
         
         toast({
           title: "Imagen cargada",
@@ -225,7 +229,7 @@ export default function SowRegistration() {
         last_parturition_date: formData.last_parturition_date || null,
         expected_farrowing_date: formData.expected_farrowing_date || null,
         last_weaning_date: formData.last_weaning_date || null,
-        photo_url: formData.photo_url.trim() || null,
+        photo_url: formData.photo_url || null,
         // Convertir números
         current_weight: parseFloat(formData.current_weight),
         min_service_weight: parseFloat(formData.min_service_weight),
@@ -236,6 +240,8 @@ export default function SowRegistration() {
         total_piglets_dead: parseInt(formData.total_piglets_dead) || 0,
         total_abortions: parseInt(formData.total_abortions) || 0
       };
+
+      console.log('Datos a enviar:', { ...dataToSend, photo_url: dataToSend.photo_url ? 'IMAGE_DATA' : 'null' });
       
       await pigService.createSow(dataToSend);
       

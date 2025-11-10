@@ -130,6 +130,46 @@ const sowController = {
         });
       }
 
+      // Sanitizar campos numéricos - convertir cadenas vacías a null o valores por defecto
+      const numericFields = [
+        'generation', 'parity_count', 'total_piglets_born', 
+        'total_piglets_alive', 'total_piglets_dead', 'total_abortions',
+        'current_weight', 'min_service_weight', 'body_condition', 'avg_piglets_alive'
+      ];
+      
+      numericFields.forEach(field => {
+        if (sowData.hasOwnProperty(field)) {
+          if (sowData[field] === '' || sowData[field] === null || sowData[field] === undefined) {
+            // Para campos con default 0 en la BD, mantener el default
+            if (['parity_count', 'total_piglets_born', 'total_piglets_alive', 
+                 'total_piglets_dead', 'total_abortions'].includes(field)) {
+              sowData[field] = 0;
+            } else {
+              sowData[field] = null;
+            }
+          } else if (typeof sowData[field] === 'string') {
+            // Convertir strings numéricos a números
+            const parsed = parseFloat(sowData[field]);
+            sowData[field] = isNaN(parsed) ? null : parsed;
+          }
+        }
+      });
+
+      // Sanitizar campos de fecha - convertir cadenas vacías a null
+      const dateFields = [
+        'birth_date', 'entry_date', 'last_weight_date', 
+        'last_service_date', 'last_parturition_date', 
+        'expected_farrowing_date', 'last_weaning_date'
+      ];
+      
+      dateFields.forEach(field => {
+        if (sowData.hasOwnProperty(field)) {
+          if (sowData[field] === '' || sowData[field] === null || sowData[field] === undefined) {
+            sowData[field] = null;
+          }
+        }
+      });
+
       // Agregar usuario que creó el registro
       if (req.user) {
         sowData.created_by = req.user.email;
@@ -195,6 +235,42 @@ const sowController = {
         }
       }
 
+      // Sanitizar campos numéricos - convertir cadenas vacías a null o valores por defecto
+      const numericFields = [
+        'generation', 'parity_count', 'total_piglets_born', 
+        'total_piglets_alive', 'total_piglets_dead', 'total_abortions',
+        'current_weight', 'min_service_weight', 'body_condition', 'avg_piglets_alive'
+      ];
+      
+      numericFields.forEach(field => {
+        if (sowData[field] === '' || sowData[field] === null || sowData[field] === undefined) {
+          // Para campos con default 0 en la BD, mantener el default
+          if (['parity_count', 'total_piglets_born', 'total_piglets_alive', 
+               'total_piglets_dead', 'total_abortions'].includes(field)) {
+            sowData[field] = 0;
+          } else {
+            sowData[field] = null;
+          }
+        } else if (typeof sowData[field] === 'string') {
+          // Convertir strings numéricos a números
+          const parsed = parseFloat(sowData[field]);
+          sowData[field] = isNaN(parsed) ? null : parsed;
+        }
+      });
+
+      // Sanitizar campos de fecha - convertir cadenas vacías a null
+      const dateFields = [
+        'birth_date', 'entry_date', 'last_weight_date', 
+        'last_service_date', 'last_parturition_date', 
+        'expected_farrowing_date', 'last_weaning_date'
+      ];
+      
+      dateFields.forEach(field => {
+        if (sowData[field] === '' || sowData[field] === null || sowData[field] === undefined) {
+          sowData[field] = null;
+        }
+      });
+
       // Agregar usuario que actualizó
       if (req.user) {
         sowData.updated_by = req.user.email;
@@ -247,6 +323,46 @@ const sowController = {
           message: 'Cerda no encontrada'
         });
       }
+
+      // Sanitizar campos numéricos - convertir cadenas vacías a null o valores por defecto
+      const numericFields = [
+        'generation', 'parity_count', 'total_piglets_born', 
+        'total_piglets_alive', 'total_piglets_dead', 'total_abortions',
+        'current_weight', 'min_service_weight', 'body_condition', 'avg_piglets_alive'
+      ];
+      
+      numericFields.forEach(field => {
+        if (sowData.hasOwnProperty(field)) {
+          if (sowData[field] === '' || sowData[field] === null || sowData[field] === undefined) {
+            // Para campos con default 0 en la BD, mantener el default
+            if (['parity_count', 'total_piglets_born', 'total_piglets_alive', 
+                 'total_piglets_dead', 'total_abortions'].includes(field)) {
+              sowData[field] = 0;
+            } else {
+              sowData[field] = null;
+            }
+          } else if (typeof sowData[field] === 'string') {
+            // Convertir strings numéricos a números
+            const parsed = parseFloat(sowData[field]);
+            sowData[field] = isNaN(parsed) ? null : parsed;
+          }
+        }
+      });
+
+      // Sanitizar campos de fecha - convertir cadenas vacías a null
+      const dateFields = [
+        'birth_date', 'entry_date', 'last_weight_date', 
+        'last_service_date', 'last_parturition_date', 
+        'expected_farrowing_date', 'last_weaning_date'
+      ];
+      
+      dateFields.forEach(field => {
+        if (sowData.hasOwnProperty(field)) {
+          if (sowData[field] === '' || sowData[field] === null || sowData[field] === undefined) {
+            sowData[field] = null;
+          }
+        }
+      });
 
       // Agregar usuario que actualizó
       if (req.user) {
