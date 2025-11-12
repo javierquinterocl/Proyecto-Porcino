@@ -17,7 +17,11 @@ import {
   exportSowToPDF, 
   exportAllSowsToPDF, 
   exportSowToExcel, 
-  exportAllSowsToExcel 
+  exportAllSowsToExcel,
+  exportBoarToPDF,
+  exportAllBoarsToPDF,
+  exportBoarToExcel,
+  exportAllBoarsToExcel
 } from "@/utils/exportUtils";
 
 export default function ReproductiveList() {
@@ -26,6 +30,7 @@ export default function ReproductiveList() {
   
   const [activeTab, setActiveTab] = useState("cerdas");
   const [sows, setSows] = useState([]);
+  const [boars, setBoars] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState("");
   
@@ -62,11 +67,31 @@ export default function ReproductiveList() {
     }
   }, [toast]);
 
+  // Cargar verracos
+  const loadBoars = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const data = await pigService.getAllBoars();
+      setBoars(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error cargando verracos:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los verracos",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+
   useEffect(() => {
     if (activeTab === "cerdas") {
       loadSows();
+    } else if (activeTab === "verracos") {
+      loadBoars();
     }
-  }, [activeTab, loadSows]);
+  }, [activeTab, loadSows, loadBoars]);
 
   // Filtrar cerdas por búsqueda
   const filteredSows = sows.filter(sow => {
@@ -76,6 +101,18 @@ export default function ReproductiveList() {
       sow.alias?.toLowerCase().includes(searchLower) ||
       sow.breed?.toLowerCase().includes(searchLower) ||
       sow.farm_name?.toLowerCase().includes(searchLower)
+    );
+  });
+
+  // Filtrar verracos por búsqueda
+  const filteredBoars = boars.filter(boar => {
+    const searchLower = search.toLowerCase();
+    return (
+      boar.ear_tag?.toLowerCase().includes(searchLower) ||
+      boar.name?.toLowerCase().includes(searchLower) ||
+      boar.breed?.toLowerCase().includes(searchLower) ||
+      boar.farm_name?.toLowerCase().includes(searchLower) ||
+      boar.supplier_name?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -105,11 +142,15 @@ export default function ReproductiveList() {
   };
 
   // Funciones para abrir modales
-  const handleView = (sow) => {
-    setViewDialog({ open: true, sow });
+  const handleViewSow = (sow) => {
+    setViewDialog({ open: true, sow: sow, type: 'cerda' });
   };
 
-  const handleEdit = (sow) => {
+  const handleViewBoar = (boar) => {
+    setViewDialog({ open: true, sow: boar, type: 'verraco' });
+  };
+
+  const handleEditSow = (sow) => {
     // Validar que la cerda no esté descartada
     if (sow.status === 'descartada') {
       toast({
@@ -143,13 +184,51 @@ export default function ReproductiveList() {
       photo_url: sow.photo_url || ""
     });
     setFormErrors({});
-    // Cargar la imagen actual si existe
     setEditImagePreview(sow.photo_url || null);
     setEditImageFile(null);
-    setEditDialog({ open: true, sow });
+    setEditDialog({ open: true, sow: sow, type: 'cerda' });
   };
 
-  const handleDelete = (sow) => {
+  const handleEditBoar = (boar) => {
+    // Validar que el verraco no esté descartado
+    if (boar.status === 'descartado') {
+      toast({
+        title: "Operación no permitida",
+        description: "No se puede editar un verraco descartado. El descarte es un estado final.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setFormData({
+      ear_tag: boar.ear_tag || "",
+      id_type: boar.id_type || "arete",
+      name: boar.name || "",
+      breed: boar.breed || "",
+      genetic_line: boar.genetic_line || "",
+      generation: boar.generation || "",
+      sire_ear_tag: boar.sire_ear_tag || "",
+      dam_ear_tag: boar.dam_ear_tag || "",
+      birth_date: formatDateForInput(boar.birth_date),
+      entry_date: formatDateForInput(boar.entry_date),
+      origin: boar.origin || "propio",
+      status: boar.status || "activo",
+      location: boar.location || "",
+      farm_name: boar.farm_name || "",
+      current_weight: boar.current_weight || "",
+      boar_type: boar.boar_type || "fisico",
+      supplier_name: boar.supplier_name || "",
+      supplier_code: boar.supplier_code || "",
+      notes: boar.notes || "",
+      photo_url: boar.photo_url || ""
+    });
+    setFormErrors({});
+    setEditImagePreview(boar.photo_url || null);
+    setEditImageFile(null);
+    setEditDialog({ open: true, sow: boar, type: 'verraco' });
+  };
+
+  const handleDeleteSow = (sow) => {
     // Validar que la cerda no esté descartada
     if (sow.status === 'descartada') {
       toast({
@@ -159,7 +238,20 @@ export default function ReproductiveList() {
       });
       return;
     }
-    setDeleteDialog({ open: true, sow });
+    setDeleteDialog({ open: true, sow: sow, type: 'cerda' });
+  };
+
+  const handleDeleteBoar = (boar) => {
+    // Validar que el verraco no esté descartado
+    if (boar.status === 'descartado') {
+      toast({
+        title: "Operación no permitida",
+        description: "Este verraco ya está descartado. No se puede volver a descartar.",
+        variant: "destructive"
+      });
+      return;
+    }
+    setDeleteDialog({ open: true, sow: boar, type: 'verraco' });
   };
 
   // Manejar selección de imagen en edición
@@ -238,8 +330,12 @@ export default function ReproductiveList() {
     if (!formData.breed) errors.breed = "La raza es obligatoria";
     if (!formData.birth_date) errors.birth_date = "La fecha de nacimiento es obligatoria";
     if (!formData.entry_date) errors.entry_date = "La fecha de entrada es obligatoria";
-    if (!formData.current_weight) errors.current_weight = "El peso actual es obligatorio";
-    if (!formData.body_condition) errors.body_condition = "La condición corporal es obligatoria";
+    
+    // Validaciones específicas de cerda
+    if (editDialog.type === 'cerda') {
+      if (!formData.current_weight) errors.current_weight = "El peso actual es obligatorio";
+      if (!formData.body_condition) errors.body_condition = "La condición corporal es obligatoria";
+    }
     
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -258,33 +354,42 @@ export default function ReproductiveList() {
 
     try {
       setIsSubmitting(true);
-      const updatedSow = await pigService.updateSow(editDialog.sow.id, formData);
+      let updatedItem;
+      
+      if (editDialog.type === 'cerda') {
+        updatedItem = await pigService.updateSow(editDialog.sow.id, formData);
+        setSows(prevSows => 
+          prevSows.map(sow => 
+            sow.id === editDialog.sow.id ? updatedItem : sow
+          )
+        );
+      } else {
+        updatedItem = await pigService.updateBoar(editDialog.sow.id, formData);
+        setBoars(prevBoars => 
+          prevBoars.map(boar => 
+            boar.id === editDialog.sow.id ? updatedItem : boar
+          )
+        );
+      }
       
       toast({
-        title: "Cerda actualizada",
+        title: `${editDialog.type === 'cerda' ? 'Cerda' : 'Verraco'} actualizado`,
         description: "Los cambios se guardaron correctamente"
       });
       
-      // Actualizar la lista de cerdas
-      setSows(prevSows => 
-        prevSows.map(sow => 
-          sow.id === editDialog.sow.id ? updatedSow : sow
-        )
-      );
-      
-      // Si el diálogo de vista estaba abierto con esta cerda, actualizarlo también
+      // Si el diálogo de vista estaba abierto con este item, actualizarlo también
       if (viewDialog.open && viewDialog.sow?.id === editDialog.sow.id) {
-        setViewDialog({ open: true, sow: updatedSow });
+        setViewDialog({ open: true, sow: updatedItem, type: editDialog.type });
       }
       
-      setEditDialog({ open: false, sow: null });
+      setEditDialog({ open: false, sow: null, type: null });
       setEditImagePreview(null);
       setEditImageFile(null);
     } catch (error) {
-      console.error("Error actualizando cerda:", error);
+      console.error(`Error actualizando ${editDialog.type === 'cerda' ? 'cerda' : 'verraco'}:`, error);
       toast({
         title: "Error",
-        description: error.response?.data?.message || "No se pudo actualizar la cerda",
+        description: error.response?.data?.message || `No se pudo actualizar ${editDialog.type === 'cerda' ? 'la cerda' : 'el verraco'}`,
         variant: "destructive"
       });
     } finally {
@@ -296,20 +401,31 @@ export default function ReproductiveList() {
   const handleDeleteConfirm = async () => {
     try {
       setIsSubmitting(true);
-      await pigService.deleteSow(deleteDialog.sow.id);
+      
+      if (deleteDialog.type === 'cerda') {
+        await pigService.deleteSow(deleteDialog.sow.id);
+      } else {
+        await pigService.deleteBoar(deleteDialog.sow.id);
+      }
       
       toast({
-        title: "Cerda eliminada",
-        description: "La cerda ha sido marcada como descartada"
+        title: `${deleteDialog.type === 'cerda' ? 'Cerda' : 'Verraco'} eliminado`,
+        description: `${deleteDialog.type === 'cerda' ? 'La cerda ha sido marcada como descartada' : 'El verraco ha sido marcado como descartado'}`
       });
       
-      setDeleteDialog({ open: false, sow: null });
-      loadSows();
+      setDeleteDialog({ open: false, sow: null, type: null });
+      
+      // Recargar la lista correspondiente
+      if (deleteDialog.type === 'cerda') {
+        loadSows();
+      } else {
+        loadBoars();
+      }
     } catch (error) {
-      console.error("Error eliminando cerda:", error);
+      console.error(`Error eliminando ${deleteDialog.type === 'cerda' ? 'cerda' : 'verraco'}:`, error);
       toast({
         title: "Error",
-        description: error.response?.data?.message || "No se pudo eliminar la cerda",
+        description: error.response?.data?.message || `No se pudo eliminar ${deleteDialog.type === 'cerda' ? 'la cerda' : 'el verraco'}`,
         variant: "destructive"
       });
     } finally {
@@ -318,7 +434,7 @@ export default function ReproductiveList() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
+    <div className="bg-gradient-to-br from-green-50 to-blue-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
@@ -337,7 +453,7 @@ export default function ReproductiveList() {
               <PiggyBank className="h-4 w-4" />
               Cerdas
             </TabsTrigger>
-            <TabsTrigger value="verracos" className="flex items-center gap-2" disabled>
+            <TabsTrigger value="verracos" className="flex items-center gap-2">
               <UsersIcon className="h-4 w-4" />
               Verracos
             </TabsTrigger>
@@ -446,7 +562,7 @@ export default function ReproductiveList() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleView(sow)}
+                                  onClick={() => handleViewSow(sow)}
                                   title="Ver detalles"
                                 >
                                   <Eye className="h-4 w-4" />
@@ -454,7 +570,7 @@ export default function ReproductiveList() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleEdit(sow)}
+                                  onClick={() => handleEditSow(sow)}
                                   title={sow.status === 'descartada' ? 'No se puede editar una cerda descartada' : 'Editar'}
                                   disabled={sow.status === 'descartada'}
                                   className={sow.status === 'descartada' ? 'opacity-50 cursor-not-allowed' : ''}
@@ -464,7 +580,7 @@ export default function ReproductiveList() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleDelete(sow)}
+                                  onClick={() => handleDeleteSow(sow)}
                                   className={sow.status === 'descartada' ? 'opacity-50 cursor-not-allowed' : 'text-red-600 hover:text-red-700'}
                                   title={sow.status === 'descartada' ? 'Esta cerda ya está descartada' : 'Descartar'}
                                   disabled={sow.status === 'descartada'}
@@ -506,15 +622,168 @@ export default function ReproductiveList() {
             </Card>
           </TabsContent>
 
-          {/* Tabs de Verracos y Lechones (deshabilitados) */}
+          {/* Tab de Verracos */}
           <TabsContent value="verracos">
             <Card>
-              <CardContent className="py-8 text-center">
-                <p className="text-gray-500">Módulo en desarrollo</p>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Listado de Verracos</CardTitle>
+                    <CardDescription>
+                      {filteredBoars.length} verracos registrados
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    {/* Botones de exportación */}
+                    {filteredBoars.length > 0 && (
+                      <div className="flex gap-2 mr-2">
+                        <Button 
+                          onClick={() => exportAllBoarsToPDF(filteredBoars)} 
+                          variant="outline"
+                          className="border-green-600 text-green-600 hover:bg-green-50"
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Exportar PDF
+                        </Button>
+                        <Button 
+                          onClick={() => exportAllBoarsToExcel(filteredBoars)} 
+                          variant="outline"
+                          className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                        >
+                          <FileSpreadsheet className="h-4 w-4 mr-2" />
+                          Exportar Excel
+                        </Button>
+                      </div>
+                    )}
+                    <Button onClick={() => navigate("/boars/register")} className="bg-blue-600 hover:bg-blue-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nuevo Verraco
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Buscador */}
+                <div className="mb-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="Buscar por arete, nombre, raza, granja o proveedor..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+
+                {/* Tabla */}
+                {isLoading ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Cargando...</p>
+                  </div>
+                ) : filteredBoars.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No se encontraron verracos</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Arete</TableHead>
+                          <TableHead>Nombre</TableHead>
+                          <TableHead>Raza</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Estado</TableHead>
+                          <TableHead>Peso (kg)</TableHead>
+                          <TableHead>Servicios</TableHead>
+                          <TableHead className="text-right">Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredBoars.map((boar) => (
+                          <TableRow key={boar.id}>
+                            <TableCell className="font-semibold">{boar.ear_tag}</TableCell>
+                            <TableCell>{boar.name || "-"}</TableCell>
+                            <TableCell>{boar.breed}</TableCell>
+                            <TableCell>
+                              <Badge variant={boar.boar_type === 'fisico' ? 'default' : 'outline'}>
+                                {boar.boar_type === 'fisico' ? 'Físico' : 'Semen'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={boar.status === 'activo' ? 'default' : 'secondary'}>
+                                {boar.status || 'N/A'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{boar.current_weight || "-"}</TableCell>
+                            <TableCell>{boar.total_services || 0}</TableCell>
+                            <TableCell>
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleViewBoar(boar)}
+                                  title="Ver detalles"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditBoar(boar)}
+                                  title={boar.status === 'descartado' ? 'No se puede editar un verraco descartado' : 'Editar'}
+                                  disabled={boar.status === 'descartado'}
+                                  className={boar.status === 'descartado' ? 'opacity-50 cursor-not-allowed' : ''}
+                                >
+                                  <Edit2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteBoar(boar)}
+                                  className={boar.status === 'descartado' ? 'opacity-50 cursor-not-allowed' : 'text-red-600 hover:text-red-700'}
+                                  title={boar.status === 'descartado' ? 'Este verraco ya está descartado' : 'Descartar'}
+                                  disabled={boar.status === 'descartado'}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                                
+                                {/* Menú de exportación */}
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      title="Exportar"
+                                    >
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => exportBoarToPDF(boar)}>
+                                      <FileText className="h-4 w-4 mr-2" />
+                                      Exportar a PDF
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => exportBoarToExcel(boar)}>
+                                      <FileSpreadsheet className="h-4 w-4 mr-2" />
+                                      Exportar a Excel
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
+          {/* Tab de Lechones (deshabilitado) */}
           <TabsContent value="lechones">
             <Card>
               <CardContent className="py-8 text-center">
@@ -525,10 +794,12 @@ export default function ReproductiveList() {
         </Tabs>
 
         {/* Modal de Ver Detalles */}
-        <Dialog open={viewDialog.open} onOpenChange={(open) => setViewDialog({ open, sow: null })}>
+        <Dialog open={viewDialog.open} onOpenChange={(open) => setViewDialog({ open, sow: null, type: null })}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-2xl">Detalles de la Cerda</DialogTitle>
+              <DialogTitle className="text-2xl">
+                {viewDialog.type === 'verraco' ? 'Detalles del Verraco' : 'Detalles de la Cerda'}
+              </DialogTitle>
               <DialogDescription>
                 Información completa de {viewDialog.sow?.ear_tag}
               </DialogDescription>
@@ -564,10 +835,17 @@ export default function ReproductiveList() {
                       <Label className="text-gray-600">Tipo de ID</Label>
                       <p className="font-semibold capitalize">{viewDialog.sow.id_type}</p>
                     </div>
-                    <div>
-                      <Label className="text-gray-600">Alias</Label>
-                      <p className="font-semibold">{viewDialog.sow.alias || "Sin alias"}</p>
-                    </div>
+                    {viewDialog.type === 'cerda' ? (
+                      <div>
+                        <Label className="text-gray-600">Alias</Label>
+                        <p className="font-semibold">{viewDialog.sow.alias || "Sin alias"}</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <Label className="text-gray-600">Nombre</Label>
+                        <p className="font-semibold">{viewDialog.sow.name || "Sin nombre"}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -589,16 +867,49 @@ export default function ReproductiveList() {
                     </div>
                     <div>
                       <Label className="text-gray-600">Arete del Padre</Label>
-                      <p className="font-semibold">{viewDialog.sow.sire_tag || "No registrado"}</p>
+                      <p className="font-semibold">{viewDialog.sow.sire_tag || viewDialog.sow.sire_ear_tag || "No registrado"}</p>
                     </div>
                     <div>
                       <Label className="text-gray-600">Arete de la Madre</Label>
-                      <p className="font-semibold">{viewDialog.sow.dam_tag || "No registrado"}</p>
+                      <p className="font-semibold">{viewDialog.sow.dam_tag || viewDialog.sow.dam_ear_tag || "No registrado"}</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Sección 3: Fechas */}
+                {/* Sección 3: Tipo de Verraco (solo para verracos) */}
+                {viewDialog.type === 'verraco' && viewDialog.sow.boar_type && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 pb-2 border-b">🏷️ Tipo de Verraco</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-gray-600">Tipo</Label>
+                        <Badge variant="outline" className="capitalize">
+                          {viewDialog.sow.boar_type}
+                        </Badge>
+                      </div>
+                      {viewDialog.sow.boar_type === 'semen comprado' && (
+                        <>
+                          <div>
+                            <Label className="text-gray-600">Proveedor</Label>
+                            <p className="font-semibold">{viewDialog.sow.supplier_name || "No especificado"}</p>
+                          </div>
+                          <div>
+                            <Label className="text-gray-600">Código Proveedor</Label>
+                            <p className="font-semibold">{viewDialog.sow.supplier_code || "No especificado"}</p>
+                          </div>
+                        </>
+                      )}
+                      {viewDialog.sow.boar_type === 'fisico' && (
+                        <div>
+                          <Label className="text-gray-600">Total Servicios</Label>
+                          <p className="font-semibold">{viewDialog.sow.total_services || 0}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Sección 4: Fechas */}
                 <div>
                   <h3 className="text-lg font-semibold mb-3 pb-2 border-b">📅 Fechas</h3>
                   <div className="grid grid-cols-2 gap-4">
@@ -614,65 +925,87 @@ export default function ReproductiveList() {
                       <Label className="text-gray-600">Origen</Label>
                       <p className="font-semibold capitalize">{viewDialog.sow.origin}</p>
                     </div>
+                    {viewDialog.type === 'verraco' && viewDialog.sow.last_service_date && (
+                      <div>
+                        <Label className="text-gray-600">Último Servicio</Label>
+                        <p className="font-semibold">{formatDate(viewDialog.sow.last_service_date)}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Sección 4: Ubicación */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 pb-2 border-b">📍 Ubicación</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-gray-600">Granja</Label>
-                      <p className="font-semibold">{viewDialog.sow.farm_name || "No especificada"}</p>
-                    </div>
-                    <div>
-                      <Label className="text-gray-600">Ubicación/Galpón</Label>
-                      <p className="font-semibold">{viewDialog.sow.location || "No especificada"}</p>
+                {/* Sección 5: Ubicación (solo para físicos) */}
+                {(!viewDialog.sow.boar_type || viewDialog.sow.boar_type === 'fisico' || viewDialog.type === 'cerda') && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 pb-2 border-b">📍 Ubicación</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-gray-600">Granja</Label>
+                        <p className="font-semibold">{viewDialog.sow.farm_name || "No especificada"}</p>
+                      </div>
+                      <div>
+                        <Label className="text-gray-600">Ubicación/Galpón</Label>
+                        <p className="font-semibold">{viewDialog.sow.location || "No especificada"}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
-                {/* Sección 5: Estado */}
+                {/* Sección 6: Estado */}
                 <div>
                   <h3 className="text-lg font-semibold mb-3 pb-2 border-b">🔄 Estado</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-gray-600">Estado General</Label>
-                      <Badge variant={viewDialog.sow.status === 'activa' ? 'default' : 'secondary'}>
+                      <Badge variant={viewDialog.sow.status === 'activa' || viewDialog.sow.status === 'activo' ? 'default' : 'secondary'}>
                         {viewDialog.sow.status}
                       </Badge>
                     </div>
-                    <div>
-                      <Label className="text-gray-600">Estado Reproductivo</Label>
-                      <Badge variant="outline">{viewDialog.sow.reproductive_status || "vacia"}</Badge>
-                    </div>
+                    {viewDialog.type === 'cerda' && (
+                      <div>
+                        <Label className="text-gray-600">Estado Reproductivo</Label>
+                        <Badge variant="outline">{viewDialog.sow.reproductive_status || "vacia"}</Badge>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Sección 6: Datos Físicos */}
+                {/* Sección 7: Datos Físicos */}
                 <div>
                   <h3 className="text-lg font-semibold mb-3 pb-2 border-b">⚖️ Datos Físicos</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="text-gray-600">Peso Actual</Label>
-                      <p className="font-semibold">{viewDialog.sow.current_weight} kg</p>
+                      <p className="font-semibold">{viewDialog.sow.current_weight ? `${viewDialog.sow.current_weight} kg` : "No registrado"}</p>
                     </div>
-                    <div>
-                      <Label className="text-gray-600">Peso Mínimo Servicio</Label>
-                      <p className="font-semibold">{viewDialog.sow.min_service_weight || "No especificado"} kg</p>
-                    </div>
-                    <div>
-                      <Label className="text-gray-600">Condición Corporal</Label>
-                      <p className="font-semibold">{viewDialog.sow.body_condition}</p>
-                    </div>
-                    <div>
-                      <Label className="text-gray-600">Fecha Último Pesaje</Label>
-                      <p className="font-semibold">{formatDate(viewDialog.sow.last_weight_date)}</p>
-                    </div>
+                    {viewDialog.type === 'cerda' && (
+                      <>
+                        <div>
+                          <Label className="text-gray-600">Peso Mínimo Servicio</Label>
+                          <p className="font-semibold">{viewDialog.sow.min_service_weight || "No especificado"} kg</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-600">Condición Corporal</Label>
+                          <p className="font-semibold">{viewDialog.sow.body_condition}</p>
+                        </div>
+                        <div>
+                          <Label className="text-gray-600">Fecha Último Pesaje</Label>
+                          <p className="font-semibold">{formatDate(viewDialog.sow.last_weight_date)}</p>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
-                {/* Sección 7: Registro */}
+                {/* Sección 8: Notas (solo para verracos) */}
+                {viewDialog.type === 'verraco' && viewDialog.sow.notes && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 pb-2 border-b">📝 Notas</h3>
+                    <p className="text-gray-700 whitespace-pre-wrap">{viewDialog.sow.notes}</p>
+                  </div>
+                )}
+
+                {/* Sección 9: Registro */}
                 <div>
                   <h3 className="text-lg font-semibold mb-3 pb-2 border-b">📝 Registro</h3>
                   <div className="grid grid-cols-2 gap-4">
@@ -694,7 +1027,7 @@ export default function ReproductiveList() {
                 <div className="flex gap-2">
                   <Button 
                     variant="outline" 
-                    onClick={() => exportSowToPDF(viewDialog.sow)}
+                    onClick={() => viewDialog.type === 'verraco' ? exportBoarToPDF(viewDialog.sow) : exportSowToPDF(viewDialog.sow)}
                     className="border-green-600 text-green-600 hover:bg-green-50"
                   >
                     <FileText className="h-4 w-4 mr-2" />
@@ -702,14 +1035,14 @@ export default function ReproductiveList() {
                   </Button>
                   <Button 
                     variant="outline" 
-                    onClick={() => exportSowToExcel(viewDialog.sow)}
+                    onClick={() => viewDialog.type === 'verraco' ? exportBoarToExcel(viewDialog.sow) : exportSowToExcel(viewDialog.sow)}
                     className="border-blue-600 text-blue-600 hover:bg-blue-50"
                   >
                     <FileSpreadsheet className="h-4 w-4 mr-2" />
                     Exportar Excel
                   </Button>
                 </div>
-                <Button variant="outline" onClick={() => setViewDialog({ open: false, sow: null })}>
+                <Button variant="outline" onClick={() => setViewDialog({ open: false, sow: null, type: null })}>
                   Cerrar
                 </Button>
               </div>
@@ -728,12 +1061,14 @@ export default function ReproductiveList() {
               setFormData({});
               setFormErrors({});
             }
-            setEditDialog({ open, sow: open ? editDialog.sow : null });
+            setEditDialog({ open, sow: open ? editDialog.sow : null, type: open ? editDialog.type : null });
           }}
         >
           <DialogContent className="max-w-[95vw] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-2xl">Editar Cerda - {editDialog.sow?.ear_tag}</DialogTitle>
+              <DialogTitle className="text-2xl">
+                {editDialog.type === 'verraco' ? 'Editar Verraco' : 'Editar Cerda'} - {editDialog.sow?.ear_tag}
+              </DialogTitle>
               <DialogDescription>
                 Modifica los datos necesarios y guarda los cambios
               </DialogDescription>
@@ -767,12 +1102,17 @@ export default function ReproductiveList() {
                     </div>
                     
                     <div>
-                      <Label htmlFor="edit-alias">Alias</Label>
+                      <Label htmlFor={editDialog.type === 'verraco' ? "edit-name" : "edit-alias"}>
+                        {editDialog.type === 'verraco' ? 'Nombre' : 'Alias'}
+                      </Label>
                       <Input
-                        id="edit-alias"
-                        value={formData.alias || ""}
-                        onChange={(e) => setFormData({ ...formData, alias: e.target.value })}
-                        placeholder="Nombre o apodo de la cerda (opcional)"
+                        id={editDialog.type === 'verraco' ? "edit-name" : "edit-alias"}
+                        value={editDialog.type === 'verraco' ? (formData.name || "") : (formData.alias || "")}
+                        onChange={(e) => setFormData({ 
+                          ...formData, 
+                          ...(editDialog.type === 'verraco' ? { name: e.target.value } : { alias: e.target.value })
+                        })}
+                        placeholder={editDialog.type === 'verraco' ? "Nombre del verraco (opcional)" : "Nombre o apodo de la cerda (opcional)"}
                       />
                     </div>
                   </div>
@@ -832,8 +1172,13 @@ export default function ReproductiveList() {
                         <Label htmlFor="edit-sire">Arete del Padre</Label>
                         <Input
                           id="edit-sire"
-                          value={formData.sire_tag || ""}
-                          onChange={(e) => setFormData({ ...formData, sire_tag: e.target.value.toUpperCase() })}
+                          value={editDialog.type === 'verraco' ? (formData.sire_ear_tag || "") : (formData.sire_tag || "")}
+                          onChange={(e) => setFormData({ 
+                            ...formData, 
+                            ...(editDialog.type === 'verraco' 
+                              ? { sire_ear_tag: e.target.value.toUpperCase() } 
+                              : { sire_tag: e.target.value.toUpperCase() })
+                          })}
                           placeholder="Opcional"
                         />
                       </div>
@@ -841,8 +1186,13 @@ export default function ReproductiveList() {
                         <Label htmlFor="edit-dam">Arete de la Madre</Label>
                         <Input
                           id="edit-dam"
-                          value={formData.dam_tag || ""}
-                          onChange={(e) => setFormData({ ...formData, dam_tag: e.target.value.toUpperCase() })}
+                          value={editDialog.type === 'verraco' ? (formData.dam_ear_tag || "") : (formData.dam_tag || "")}
+                          onChange={(e) => setFormData({ 
+                            ...formData, 
+                            ...(editDialog.type === 'verraco' 
+                              ? { dam_ear_tag: e.target.value.toUpperCase() } 
+                              : { dam_tag: e.target.value.toUpperCase() })
+                          })}
                           placeholder="Opcional"
                         />
                       </div>
@@ -858,7 +1208,7 @@ export default function ReproductiveList() {
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="edit-weight">Peso Actual (kg) *</Label>
+                        <Label htmlFor="edit-weight">Peso Actual (kg) {editDialog.type === 'cerda' ? '*' : ''}</Label>
                         <Input
                           id="edit-weight"
                           type="number"
@@ -866,54 +1216,59 @@ export default function ReproductiveList() {
                           value={formData.current_weight || ""}
                           onChange={(e) => setFormData({ ...formData, current_weight: e.target.value })}
                           className={formErrors.current_weight ? "border-red-500" : ""}
+                          placeholder={editDialog.type === 'verraco' ? "Opcional" : ""}
                         />
                         {formErrors.current_weight && <p className="text-xs text-red-500 mt-1">{formErrors.current_weight}</p>}
                       </div>
-                      <div>
-                        <Label htmlFor="edit-min-weight">Peso Mínimo Servicio (kg)</Label>
-                        <Input
-                          id="edit-min-weight"
-                          type="number"
-                          step="0.1"
-                          value={formData.min_service_weight || ""}
-                          onChange={(e) => setFormData({ ...formData, min_service_weight: e.target.value })}
-                          placeholder="120"
-                        />
-                      </div>
+                      {editDialog.type === 'cerda' && (
+                        <div>
+                          <Label htmlFor="edit-min-weight">Peso Mínimo Servicio (kg)</Label>
+                          <Input
+                            id="edit-min-weight"
+                            type="number"
+                            step="0.1"
+                            value={formData.min_service_weight || ""}
+                            onChange={(e) => setFormData({ ...formData, min_service_weight: e.target.value })}
+                            placeholder="120"
+                          />
+                        </div>
+                      )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="edit-condition">Condición Corporal (1-5) *</Label>
-                        <Input
-                          id="edit-condition"
-                          type="number"
-                          min="1"
-                          max="5"
-                          step="0.5"
-                          value={formData.body_condition || ""}
-                          onChange={(e) => setFormData({ ...formData, body_condition: e.target.value })}
-                          className={formErrors.body_condition ? "border-red-500" : ""}
-                        />
-                        {formErrors.body_condition && <p className="text-xs text-red-500 mt-1">{formErrors.body_condition}</p>}
+                    {editDialog.type === 'cerda' && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="edit-condition">Condición Corporal (1-5) *</Label>
+                          <Input
+                            id="edit-condition"
+                            type="number"
+                            min="1"
+                            max="5"
+                            step="0.5"
+                            value={formData.body_condition || ""}
+                            onChange={(e) => setFormData({ ...formData, body_condition: e.target.value })}
+                            className={formErrors.body_condition ? "border-red-500" : ""}
+                          />
+                          {formErrors.body_condition && <p className="text-xs text-red-500 mt-1">{formErrors.body_condition}</p>}
+                        </div>
+                        <div>
+                          <Label htmlFor="edit-weight-date">Fecha Último Pesaje</Label>
+                          <Input
+                            id="edit-weight-date"
+                            type="date"
+                            value={formData.last_weight_date || ""}
+                            onChange={(e) => setFormData({ ...formData, last_weight_date: e.target.value })}
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <Label htmlFor="edit-weight-date">Fecha Último Pesaje</Label>
-                        <Input
-                          id="edit-weight-date"
-                          type="date"
-                          value={formData.last_weight_date || ""}
-                          onChange={(e) => setFormData({ ...formData, last_weight_date: e.target.value })}
-                        />
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Foto */}
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                   <h3 className="text-lg font-bold text-gray-900 mb-4 pb-2 border-b-2 border-purple-300">
-                    📸 Foto de la Cerda
+                    📸 Foto {editDialog.type === 'verraco' ? 'del Verraco' : 'de la Cerda'}
                   </h3>
                   <div className="flex flex-col items-center space-y-4">
                     {/* Preview de la imagen */}
@@ -1029,10 +1384,20 @@ export default function ReproductiveList() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="propia">Propia</SelectItem>
-                          <SelectItem value="comprada">Comprada</SelectItem>
-                          <SelectItem value="intercambio genetico">Intercambio Genético</SelectItem>
-                          <SelectItem value="otro">Otro</SelectItem>
+                          {editDialog.type === 'verraco' ? (
+                            <>
+                              <SelectItem value="propio">Propio</SelectItem>
+                              <SelectItem value="comprado">Comprado</SelectItem>
+                              <SelectItem value="centro genetico">Centro Genético</SelectItem>
+                            </>
+                          ) : (
+                            <>
+                              <SelectItem value="propia">Propia</SelectItem>
+                              <SelectItem value="comprada">Comprada</SelectItem>
+                              <SelectItem value="intercambio genetico">Intercambio Genético</SelectItem>
+                              <SelectItem value="otro">Otro</SelectItem>
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -1080,32 +1445,59 @@ export default function ReproductiveList() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="activa">Activa</SelectItem>
-                          <SelectItem value="descartada">Descartada</SelectItem>
-                          <SelectItem value="muerta">Muerta</SelectItem>
-                          <SelectItem value="vendida">Vendida</SelectItem>
+                          {editDialog.type === 'verraco' ? (
+                            <>
+                              <SelectItem value="activo">Activo</SelectItem>
+                              <SelectItem value="descanso">Descanso</SelectItem>
+                              <SelectItem value="descartado">Descartado</SelectItem>
+                              <SelectItem value="muerto">Muerto</SelectItem>
+                              <SelectItem value="vendido">Vendido</SelectItem>
+                            </>
+                          ) : (
+                            <>
+                              <SelectItem value="activa">Activa</SelectItem>
+                              <SelectItem value="descartada">Descartada</SelectItem>
+                              <SelectItem value="muerta">Muerta</SelectItem>
+                              <SelectItem value="vendida">Vendida</SelectItem>
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
 
-                    <div>
-                      <Label htmlFor="edit-reproductive-status">Estado Reproductivo</Label>
-                      <Select 
-                        value={formData.reproductive_status} 
-                        onValueChange={(value) => setFormData({ ...formData, reproductive_status: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="vacia">Vacía</SelectItem>
-                          <SelectItem value="servida">Servida</SelectItem>
-                          <SelectItem value="gestante">Gestante</SelectItem>
-                          <SelectItem value="lactante">Lactante</SelectItem>
-                          <SelectItem value="destetada">Destetada</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {editDialog.type === 'cerda' && (
+                      <div>
+                        <Label htmlFor="edit-reproductive-status">Estado Reproductivo</Label>
+                        <Select 
+                          value={formData.reproductive_status} 
+                          onValueChange={(value) => setFormData({ ...formData, reproductive_status: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="vacia">Vacía</SelectItem>
+                            <SelectItem value="servida">Servida</SelectItem>
+                            <SelectItem value="gestante">Gestante</SelectItem>
+                            <SelectItem value="lactante">Lactante</SelectItem>
+                            <SelectItem value="destetada">Destetada</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {editDialog.type === 'verraco' && (
+                      <div>
+                        <Label htmlFor="edit-notes">Notas</Label>
+                        <textarea
+                          id="edit-notes"
+                          value={formData.notes || ""}
+                          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                          className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          placeholder="Observaciones del verraco (opcional)"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1153,34 +1545,37 @@ export default function ReproductiveList() {
         </Dialog>
 
         {/* Modal de Eliminar */}
-        <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, sow: null })}>
+        <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, sow: null, type: null })}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Confirmar Eliminación</DialogTitle>
               <DialogDescription>
-                ¿Estás seguro de que deseas eliminar la cerda <strong>{deleteDialog.sow?.ear_tag}</strong>?
+                ¿Estás seguro de que deseas eliminar {deleteDialog.type === 'cerda' ? 'la cerda' : 'el verraco'} <strong>{deleteDialog.sow?.ear_tag}</strong>?
               </DialogDescription>
             </DialogHeader>
             
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <p className="text-sm text-yellow-800">
-                <strong>Nota:</strong> Esta acción marcará la cerda como "descartada". 
-                Si la cerda tiene datos reproductivos asociados, no podrá ser eliminada permanentemente.
+                <strong>Nota:</strong> Esta acción marcará {deleteDialog.type === 'cerda' ? 'la cerda' : 'el verraco'} como "descartado". 
+                {deleteDialog.type === 'cerda' 
+                  ? 'Si la cerda tiene datos reproductivos asociados, no podrá ser eliminada permanentemente.' 
+                  : 'Si el verraco tiene servicios asociados, no podrá ser eliminado permanentemente.'}
               </p>
             </div>
             
-            <DialogFooter>
+            <DialogFooter className="flex flex-row justify-end gap-3 mt-4">
               <Button 
                 variant="outline" 
-                onClick={() => setDeleteDialog({ open: false, sow: null })}
+                onClick={() => setDeleteDialog({ open: false, sow: null, type: null })}
                 disabled={isSubmitting}
+                className="min-w-[100px]"
               >
                 Cancelar
               </Button>
               <Button 
-                variant="destructive" 
                 onClick={handleDeleteConfirm}
                 disabled={isSubmitting}
+                className="min-w-[100px] bg-red-600 hover:bg-red-700 text-white"
               >
                 {isSubmitting ? "Eliminando..." : "Eliminar"}
               </Button>

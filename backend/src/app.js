@@ -4,6 +4,7 @@ require('dotenv').config();
 
 const userRoutes = require('./routes/userRoutes');
 const sowRoutes = require('./routes/sowRoutes');
+const boarRoutes = require('./routes/boarRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -48,6 +49,17 @@ app.get('/', (req, res) => {
         partialUpdate: 'PATCH /api/sows/:id',
         softDelete: 'DELETE /api/sows/:id',
         delete: 'DELETE /api/sows/:id/permanent (admin)'
+      },
+      boars: {
+        list: 'GET /api/boars',
+        stats: 'GET /api/boars/stats',
+        get: 'GET /api/boars/:id',
+        getByEarTag: 'GET /api/boars/ear-tag/:ear_tag',
+        create: 'POST /api/boars',
+        update: 'PUT /api/boars/:id',
+        partialUpdate: 'PATCH /api/boars/:id',
+        softDelete: 'DELETE /api/boars/:id',
+        delete: 'DELETE /api/boars/:id/permanent (admin)'
       }
     }
   });
@@ -57,6 +69,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', userRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/sows', sowRoutes);
+app.use('/api/boars', boarRoutes);
 
 // Manejo de rutas no encontradas
 app.use((req, res) => {

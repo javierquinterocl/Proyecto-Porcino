@@ -13,6 +13,7 @@ import SowBasicDataPage from './pages/SowBasicData'
 import SowReproductiveHistoryPage from './pages/SowReproductiveHistory'
 import SowPigletsPage from './pages/SowPiglets'
 import SowRegistrationPage from './pages/SowRegistration'
+import BoarRegistrationPage from './pages/BoarRegistration'
 import ReproductiveListPage from './pages/ReproductiveList'
 import CriticalPeriodsPage from './pages/CriticalPeriodsPage'
 import ReproductiveParametersPage from './pages/ReproductiveParametersPage'
@@ -47,6 +48,7 @@ function App() {
             <Route path="/sows/basic-data" element={<SowBasicDataPage />} />
             <Route path="/sows/reproductive-history" element={<SowReproductiveHistoryPage />} />
             <Route path="/sows/piglets" element={<SowPigletsPage />} />
+            <Route path="/boars/register" element={<BoarRegistrationPage />} />
             <Route path="/critical-periods" element={<CriticalPeriodsPage />} />
             <Route path="/reproductive-parameters" element={<ReproductiveParametersPage />} />
             <Route path="/pigs" element={<PigsListPage />} />

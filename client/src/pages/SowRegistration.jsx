@@ -251,9 +251,9 @@ export default function SowRegistration() {
         variant: "default"
       });
       
-      // Redirigir a la lista de cerdas
+      // Redirigir a la lista de reproductoras
       setTimeout(() => {
-        navigate("/sows/basic-data");
+        navigate("/sows/list");
       }, 1500);
       
     } catch (error) {
@@ -318,21 +318,21 @@ export default function SowRegistration() {
                 </div>
               </button>
               
-              {/* Opción Verraco (Deshabilitada) */}
-              <div className="group relative overflow-hidden rounded-2xl border-2 border-gray-200 bg-gray-50 p-8 opacity-60 cursor-not-allowed">
+              {/* Opción Verraco */}
+              <button
+                onClick={() => navigate("/boars/register")}
+                className="group relative overflow-hidden rounded-2xl border-2 border-gray-200 bg-white p-8 transition-all hover:border-blue-500 hover:shadow-2xl"
+              >
                 <div className="flex flex-col items-center space-y-4">
-                  <div className="rounded-full bg-blue-100 p-6">
-                    <Users className="h-16 w-16 text-blue-600" />
+                  <div className="rounded-full bg-blue-100 p-6 transition-colors group-hover:bg-blue-500">
+                    <Users className="h-16 w-16 text-blue-600 group-hover:text-white" />
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900">Verraco</h3>
                   <p className="text-center text-gray-600">
-                    Próximamente disponible
+                    Registrar un verraco reproductor con todos sus datos
                   </p>
-                  <span className="text-xs text-gray-500 font-medium">
-                    En desarrollo
-                  </span>
                 </div>
-              </div>
+              </button>
             </CardContent>
           </Card>
         </div>

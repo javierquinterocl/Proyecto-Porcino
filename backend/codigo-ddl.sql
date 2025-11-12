@@ -495,25 +495,6 @@ BEFORE INSERT OR UPDATE ON heats
 FOR EACH ROW
 EXECUTE FUNCTION calculate_heat_end_date();
 
--- Trigger: Actualizar contador de servicios del verraco
-CREATE OR REPLACE FUNCTION update_boar_service_count()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF TG_OP = 'INSERT' THEN
-    UPDATE boars 
-    SET 
-      total_services = total_services + 1,
-      last_service_date = NEW.service_date
-    WHERE id = NEW.boar_id;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trigger_update_boar_service_count
-AFTER INSERT ON services
-FOR EACH ROW
-EXECUTE FUNCTION update_boar_service_count();
 
 -- Trigger: Calcular fecha esperada de parto al crear gestación
 CREATE OR REPLACE FUNCTION calculate_expected_farrowing()

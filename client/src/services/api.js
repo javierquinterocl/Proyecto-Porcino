@@ -280,7 +280,48 @@ export const pigService = {
     return response.data.data;
   },
   
-  // Subir foto de cerda
+  // Métodos relacionados con verracos
+  getAllBoars: async () => {
+    const response = await api.get('/boars');
+    return response.data.data || [];
+  },
+  
+  getBoarById: async (id) => {
+    const response = await api.get(`/boars/${id}`);
+    return response.data.data;
+  },
+  
+  getBoarByEarTag: async (earTag) => {
+    const response = await api.get(`/boars/ear-tag/${earTag}`);
+    return response.data.data;
+  },
+  
+  createBoar: async (boarData) => {
+    const response = await api.post('/boars', boarData);
+    return response.data;
+  },
+  
+  updateBoar: async (id, boarData) => {
+    const response = await api.put(`/boars/${id}`, boarData);
+    return response.data.data;
+  },
+  
+  partialUpdateBoar: async (id, boarData) => {
+    const response = await api.patch(`/boars/${id}`, boarData);
+    return response.data;
+  },
+  
+  deleteBoar: async (id) => {
+    const response = await api.delete(`/boars/${id}`);
+    return response.data;
+  },
+  
+  getBoarStats: async () => {
+    const response = await api.get('/boars/stats');
+    return response.data.data;
+  },
+  
+  // Subir foto (funciona para cerdas y verracos)
   uploadPhoto: async (file) => {
     const formData = new FormData();
     formData.append('photo', file);
