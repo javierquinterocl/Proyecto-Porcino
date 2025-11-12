@@ -110,6 +110,16 @@ export default function ReproductiveList() {
   };
 
   const handleEdit = (sow) => {
+    // Validar que la cerda no esté descartada
+    if (sow.status === 'descartada') {
+      toast({
+        title: "Operación no permitida",
+        description: "No se puede editar una cerda descartada. El descarte es un estado final.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setFormData({
       ear_tag: sow.ear_tag || "",
       id_type: sow.id_type || "arete",
@@ -140,6 +150,15 @@ export default function ReproductiveList() {
   };
 
   const handleDelete = (sow) => {
+    // Validar que la cerda no esté descartada
+    if (sow.status === 'descartada') {
+      toast({
+        title: "Operación no permitida",
+        description: "Esta cerda ya está descartada. No se puede volver a descartar.",
+        variant: "destructive"
+      });
+      return;
+    }
     setDeleteDialog({ open: true, sow });
   };
 
@@ -436,7 +455,9 @@ export default function ReproductiveList() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleEdit(sow)}
-                                  title="Editar"
+                                  title={sow.status === 'descartada' ? 'No se puede editar una cerda descartada' : 'Editar'}
+                                  disabled={sow.status === 'descartada'}
+                                  className={sow.status === 'descartada' ? 'opacity-50 cursor-not-allowed' : ''}
                                 >
                                   <Edit2 className="h-4 w-4" />
                                 </Button>
@@ -444,8 +465,9 @@ export default function ReproductiveList() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleDelete(sow)}
-                                  className="text-red-600 hover:text-red-700"
-                                  title="Eliminar"
+                                  className={sow.status === 'descartada' ? 'opacity-50 cursor-not-allowed' : 'text-red-600 hover:text-red-700'}
+                                  title={sow.status === 'descartada' ? 'Esta cerda ya está descartada' : 'Descartar'}
+                                  disabled={sow.status === 'descartada'}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>

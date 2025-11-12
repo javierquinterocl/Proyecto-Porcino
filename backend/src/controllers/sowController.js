@@ -224,6 +224,14 @@ const sowController = {
         });
       }
 
+      // Validar que la cerda no esté descartada
+      if (existingSow.status === 'descartada') {
+        return res.status(403).json({
+          success: false,
+          message: 'No se puede modificar una cerda descartada. El descarte es un estado final.'
+        });
+      }
+
       // Si se cambia el ear_tag, verificar que no exista
       if (sowData.ear_tag && sowData.ear_tag !== existingSow.ear_tag) {
         const earTagExists = await sowModel.getByEarTag(sowData.ear_tag);
@@ -324,6 +332,14 @@ const sowController = {
         });
       }
 
+      // Validar que la cerda no esté descartada
+      if (existingSow.status === 'descartada') {
+        return res.status(403).json({
+          success: false,
+          message: 'No se puede modificar una cerda descartada. El descarte es un estado final.'
+        });
+      }
+
       // Sanitizar campos numéricos - convertir cadenas vacías a null o valores por defecto
       const numericFields = [
         'generation', 'parity_count', 'total_piglets_born', 
@@ -390,6 +406,24 @@ const sowController = {
   softDelete: async (req, res) => {
     try {
       const { id } = req.params;
+      
+      // Verificar que la cerda existe y su estado actual
+      const existingSow = await sowModel.getById(id);
+      if (!existingSow) {
+        return res.status(404).json({
+          success: false,
+          message: 'Cerda no encontrada'
+        });
+      }
+
+      // Validar que la cerda no esté ya descartada
+      if (existingSow.status === 'descartada') {
+        return res.status(400).json({
+          success: false,
+          message: 'Esta cerda ya está descartada. No se puede volver a descartar.'
+        });
+      }
+
       const deletedSow = await sowModel.softDelete(id);
       
       if (!deletedSow) {
