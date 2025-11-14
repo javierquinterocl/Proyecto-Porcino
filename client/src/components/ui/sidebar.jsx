@@ -17,7 +17,8 @@ import {
   Menu,
   Users,
   PiggyBank,
-  Activity
+  Activity,
+  Thermometer
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -64,7 +65,7 @@ export function Sidebar() {
     if (pathname?.includes("/sows")) {
       setOpenMenus((prev) => ({ ...prev, sows: true }))
     }
-    if (pathname?.includes("/critical-periods") || pathname?.includes("/reproductive-parameters")) {
+    if (pathname?.includes("/critical-periods") || pathname?.includes("/reproductive-parameters") || pathname?.includes("/heats")) {
       setOpenMenus((prev) => ({ ...prev, reproductive: true }))
     }
   }, [pathname])
@@ -83,12 +84,12 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "bg-[#1a2e02] text-white flex-shrink-0 hidden md:flex md:flex-col transition-all duration-300 h-full",
+        "bg-[#1a2e02] text-white flex-shrink-0 hidden md:flex md:flex-col transition-all duration-300 h-full overflow-hidden",
         collapsed ? "w-16" : "w-64",
       )}
     >
-      <div className="p-4 flex-1 flex flex-col overflow-y-auto">
-        <div className="flex items-center justify-between mb-6 flex-shrink-0">
+      <div className="flex flex-col h-full">
+        <div className="p-4 flex items-center justify-between flex-shrink-0">
           {!collapsed && <h2 className="text-xl font-bold">Granme</h2>}
           <Button
             variant="ghost"
@@ -101,7 +102,7 @@ export function Sidebar() {
           </Button>
         </div>
 
-        <nav className="space-y-1 flex-1 overflow-y-auto">
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-4 space-y-1">
           <NavItem
             icon={<Home className="h-5 w-5" />}
             label="Dashboard"
@@ -183,7 +184,7 @@ export function Sidebar() {
               icon={<Activity className="h-5 w-5" />}
               label="Datos Reproductivos"
               href="/critical-periods"
-              isActive={pathname?.includes("/critical-periods") || pathname?.includes("/reproductive-parameters")}
+              isActive={pathname?.includes("/critical-periods") || pathname?.includes("/reproductive-parameters") || pathname?.includes("/heats")}
               collapsed={collapsed}
             />
           ) : (
@@ -206,6 +207,13 @@ export function Sidebar() {
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-6 space-y-1">
+                <NavItem
+                  icon={<Thermometer className="h-5 w-5" />}
+                  label="Celos/Estros"
+                  href="/heats"
+                  isActive={pathname?.includes("/heats")}
+                  collapsed={collapsed}
+                />
                 <NavItem
                   icon={<Calendar className="h-5 w-5" />}
                   label="Períodos Críticos"
@@ -329,7 +337,7 @@ export function Sidebar() {
           )}
         </nav>
 
-        <div className="mt-auto pt-4 border-t border-[#2a4a04] flex-shrink-0">
+        <div className="p-4 border-t border-[#2a4a04] flex-shrink-0">
           <Button
             variant="ghost"
             className="w-full justify-start text-white hover:bg-[#2a4a04] hover:text-white"

@@ -336,6 +336,88 @@ export const pigService = {
   }
 };
 
+// ==================== HEAT SERVICE ====================
+
+export const heatService = {
+  // Obtener todos los celos
+  getAllHeats: async (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key]) params.append(key, filters[key]);
+    });
+    const queryString = params.toString();
+    const url = queryString ? `/heats?${queryString}` : '/heats';
+    const response = await api.get(url);
+    return response.data.data || [];
+  },
+  
+  // Obtener celo por ID
+  getHeatById: async (id) => {
+    const response = await api.get(`/heats/${id}`);
+    return response.data.data;
+  },
+  
+  // Obtener celos de una cerda
+  getHeatsBySowId: async (sowId) => {
+    const response = await api.get(`/heats/sow/${sowId}`);
+    return response.data.data || [];
+  },
+  
+  // Obtener último celo de una cerda
+  getLastHeatBySowId: async (sowId) => {
+    const response = await api.get(`/heats/sow/${sowId}/last`);
+    return response.data.data;
+  },
+  
+  // Obtener celos pendientes de servicio
+  getPendingHeats: async () => {
+    const response = await api.get('/heats/pending');
+    return response.data.data || [];
+  },
+  
+  // Obtener estadísticas de celos
+  getHeatStats: async (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key]) params.append(key, filters[key]);
+    });
+    const queryString = params.toString();
+    const url = queryString ? `/heats/stats?${queryString}` : '/heats/stats';
+    const response = await api.get(url);
+    return response.data.data;
+  },
+  
+  // Crear nuevo celo
+  createHeat: async (heatData) => {
+    const response = await api.post('/heats', heatData);
+    return response.data;
+  },
+  
+  // Actualizar celo completo
+  updateHeat: async (id, heatData) => {
+    const response = await api.put(`/heats/${id}`, heatData);
+    return response.data.data;
+  },
+  
+  // Actualizar campos específicos del celo
+  partialUpdateHeat: async (id, heatData) => {
+    const response = await api.patch(`/heats/${id}`, heatData);
+    return response.data;
+  },
+  
+  // Actualizar solo el estado del celo
+  updateHeatStatus: async (id, status, notes = null) => {
+    const response = await api.patch(`/heats/${id}/status`, { status, notes });
+    return response.data;
+  },
+  
+  // Eliminar celo
+  deleteHeat: async (id) => {
+    const response = await api.delete(`/heats/${id}`);
+    return response.data;
+  }
+};
+
 export const supplierService = {
   // Métodos relacionados con proveedores
 };

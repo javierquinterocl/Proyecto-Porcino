@@ -15,6 +15,8 @@ import SowPigletsPage from './pages/SowPiglets'
 import SowRegistrationPage from './pages/SowRegistration'
 import BoarRegistrationPage from './pages/BoarRegistration'
 import ReproductiveListPage from './pages/ReproductiveList'
+import HeatsListPage from './pages/HeatsList'
+import HeatRegistrationPage from './pages/HeatRegistration'
 import CriticalPeriodsPage from './pages/CriticalPeriodsPage'
 import ReproductiveParametersPage from './pages/ReproductiveParametersPage'
 import Dashboard from './pages/Dashboard'
@@ -49,6 +51,9 @@ function App() {
             <Route path="/sows/reproductive-history" element={<SowReproductiveHistoryPage />} />
             <Route path="/sows/piglets" element={<SowPigletsPage />} />
             <Route path="/boars/register" element={<BoarRegistrationPage />} />
+            <Route path="/heats" element={<HeatsListPage />} />
+            <Route path="/heats/register" element={<HeatRegistrationPage />} />
+            <Route path="/heats/edit/:id" element={<HeatRegistrationPage />} />
             <Route path="/critical-periods" element={<CriticalPeriodsPage />} />
             <Route path="/reproductive-parameters" element={<ReproductiveParametersPage />} />
             <Route path="/pigs" element={<PigsListPage />} />
