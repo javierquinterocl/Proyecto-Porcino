@@ -500,6 +500,106 @@ export const serviceService = {
   }
 };
 
+// ==================== PREGNANCY SERVICE ====================
+
+export const pregnancyService = {
+  // Obtener todas las gestaciones
+  getAllPregnancies: async (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key]) params.append(key, filters[key]);
+    });
+    const queryString = params.toString();
+    const url = queryString ? `/pregnancies?${queryString}` : '/pregnancies';
+    const response = await api.get(url);
+    return response.data.data || [];
+  },
+  
+  // Obtener gestación por ID
+  getPregnancyById: async (id) => {
+    const response = await api.get(`/pregnancies/${id}`);
+    return response.data.data;
+  },
+  
+  // Obtener gestaciones de una cerda
+  getPregnanciesBySowId: async (sowId) => {
+    const response = await api.get(`/pregnancies/sow/${sowId}`);
+    return response.data.data || [];
+  },
+  
+  // Obtener gestación activa de una cerda
+  getActivePregnancyBySowId: async (sowId) => {
+    const response = await api.get(`/pregnancies/sow/${sowId}/active`);
+    return response.data.data;
+  },
+  
+  // Obtener gestaciones próximas a parto
+  getUpcomingPregnancies: async (daysAhead = 7) => {
+    const response = await api.get(`/pregnancies/upcoming?days=${daysAhead}`);
+    return response.data.data || [];
+  },
+  
+  // Obtener gestaciones vencidas
+  getOverduePregnancies: async () => {
+    const response = await api.get('/pregnancies/overdue');
+    return response.data.data || [];
+  },
+  
+  // Obtener gestaciones pendientes de confirmación
+  getPendingConfirmation: async () => {
+    const response = await api.get('/pregnancies/pending-confirmation');
+    return response.data.data || [];
+  },
+  
+  // Obtener estadísticas de gestaciones
+  getPregnancyStats: async (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key]) params.append(key, filters[key]);
+    });
+    const queryString = params.toString();
+    const url = queryString ? `/pregnancies/stats?${queryString}` : '/pregnancies/stats';
+    const response = await api.get(url);
+    return response.data.data;
+  },
+  
+  // Crear nueva gestación
+  createPregnancy: async (pregnancyData) => {
+    const response = await api.post('/pregnancies', pregnancyData);
+    return response.data;
+  },
+  
+  // Actualizar gestación completa
+  updatePregnancy: async (id, pregnancyData) => {
+    const response = await api.put(`/pregnancies/${id}`, pregnancyData);
+    return response.data.data;
+  },
+  
+  // Actualizar campos específicos de la gestación
+  partialUpdatePregnancy: async (id, pregnancyData) => {
+    const response = await api.patch(`/pregnancies/${id}`, pregnancyData);
+    return response.data;
+  },
+  
+  // Actualizar solo el estado de la gestación
+  updatePregnancyStatus: async (id, status, notes = null) => {
+    const response = await api.patch(`/pregnancies/${id}/status`, { status, notes });
+    return response.data;
+  },
+  
+  // Confirmar gestación
+  confirmPregnancy: async (id, confirmationData) => {
+    const response = await api.patch(`/pregnancies/${id}/confirm`, confirmationData);
+    return response.data;
+  },
+  
+  // Eliminar gestación
+  deletePregnancy: async (id) => {
+    const response = await api.delete(`/pregnancies/${id}`);
+    return response.data;
+  }
+};
+
 export const supplierService = {
   // Métodos relacionados con proveedores
 };

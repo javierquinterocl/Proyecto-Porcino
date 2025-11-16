@@ -19,6 +19,8 @@ import HeatsListPage from './pages/HeatsList'
 import HeatRegistrationPage from './pages/HeatRegistration'
 import ServicesListPage from './pages/ServicesList'
 import ServiceRegistrationPage from './pages/ServiceRegistration'
+import PregnanciesListPage from './pages/PregnanciesList'
+import PregnancyRegistrationPage from './pages/PregnancyRegistration'
 import CriticalPeriodsPage from './pages/CriticalPeriodsPage'
 import ReproductiveParametersPage from './pages/ReproductiveParametersPage'
 import Dashboard from './pages/Dashboard'
@@ -59,6 +61,9 @@ function App() {
             <Route path="/services" element={<ServicesListPage />} />
             <Route path="/services/register" element={<ServiceRegistrationPage />} />
             <Route path="/services/edit/:id" element={<ServiceRegistrationPage />} />
+            <Route path="/pregnancies" element={<PregnanciesListPage />} />
+            <Route path="/pregnancies/register" element={<PregnancyRegistrationPage />} />
+            <Route path="/pregnancies/edit/:id" element={<PregnancyRegistrationPage />} />
             <Route path="/critical-periods" element={<CriticalPeriodsPage />} />
             <Route path="/reproductive-parameters" element={<ReproductiveParametersPage />} />
             <Route path="/pigs" element={<PigsListPage />} />

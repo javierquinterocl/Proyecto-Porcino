@@ -262,6 +262,7 @@ CREATE TABLE services (
     (service_type = 'monta natural' AND boar_id IS NOT NULL AND ia_type IS NULL AND semen_dose_code IS NULL AND semen_volume_ml IS NULL AND semen_concentration IS NULL) OR
     (service_type = 'inseminacion artificial' AND mating_duration_minutes IS NULL AND mating_quality IS NULL)
   )
+  -- esta restriccion puede generar conflictos (si se ocaciona un error al registrar servicios quiza es por esto)
 );
 
 -- Tabla de gestaciones/preñeces
@@ -705,33 +706,6 @@ AFTER UPDATE ON pregnancies
 FOR EACH ROW
 EXECUTE FUNCTION create_farrowing_event();
 
--- Función: Marcar celos como 'no servido' si pasó el tiempo límite sin servicio
--- Esta función debe ejecutarse periódicamente (diariamente) mediante un job scheduler
-CREATE OR REPLACE FUNCTION mark_unserved_heats()
-RETURNS TABLE (
-  heat_id INTEGER,
-  sow_ear_tag VARCHAR(30),
-  heat_date DATE,
-  heat_end_date DATE
-) AS $$
-BEGIN
-  -- Actualizar celos que están en estado 'detectado' y cuya fecha de fin ya pasó
-  -- y que NO tienen servicios asociados
-  RETURN QUERY
-  UPDATE heats h
-  SET status = 'no servido'
-  WHERE h.status = 'detectado'
-    AND h.heat_end_date IS NOT NULL
-    AND h.heat_end_date < CURRENT_DATE
-    AND NOT EXISTS (
-      SELECT 1 FROM services s WHERE s.heat_id = h.id
-    )
-  RETURNING 
-    h.id,
-    (SELECT ear_tag FROM sows WHERE id = h.sow_id),
-    h.heat_date,
-    h.heat_end_date;
-END;
-$$ LANGUAGE plpgsql;
+
 
 

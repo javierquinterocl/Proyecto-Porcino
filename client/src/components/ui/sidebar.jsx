@@ -18,7 +18,8 @@ import {
   Users,
   PiggyBank,
   Activity,
-  Thermometer
+  Thermometer,
+  Heart
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -219,6 +220,13 @@ export function Sidebar() {
                   label="Servicios"
                   href="/services"
                   isActive={pathname?.includes("/services")}
+                  collapsed={collapsed}
+                />
+                <NavItem
+                  icon={<Heart className="h-5 w-5" />}
+                  label="Gestaciones"
+                  href="/pregnancies"
+                  isActive={pathname?.includes("/pregnancies")}
                   collapsed={collapsed}
                 />
                 <NavItem

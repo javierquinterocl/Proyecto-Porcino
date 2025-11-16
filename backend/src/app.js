@@ -7,6 +7,7 @@ const sowRoutes = require('./routes/sowRoutes');
 const boarRoutes = require('./routes/boarRoutes');
 const heatRoutes = require('./routes/heatRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
+const pregnancyRoutes = require('./routes/pregnancyRoutes');
 
 // Importar y configurar jobs automáticos
 const { heatStatusJob } = require('./jobs/heatStatusJob');
@@ -90,6 +91,7 @@ app.use('/api/sows', sowRoutes);
 app.use('/api/boars', boarRoutes);
 app.use('/api/heats', heatRoutes);
 app.use('/api/services', serviceRoutes);
+app.use('/api/pregnancies', pregnancyRoutes);
 
 // Manejo de rutas no encontradas
 app.use((req, res) => {

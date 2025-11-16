@@ -542,9 +542,9 @@ const ServicesList = () => {
               Cancelar
             </Button>
             <Button
-              variant="destructive"
               onClick={confirmDelete}
               disabled={isDeleting}
+              className="bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600"
             >
               {isDeleting ? "Eliminando..." : "Eliminar Servicio"}
             </Button>
