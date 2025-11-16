@@ -6,6 +6,10 @@ const userRoutes = require('./routes/userRoutes');
 const sowRoutes = require('./routes/sowRoutes');
 const boarRoutes = require('./routes/boarRoutes');
 const heatRoutes = require('./routes/heatRoutes');
+const serviceRoutes = require('./routes/serviceRoutes');
+
+// Importar y configurar jobs automáticos
+const { heatStatusJob } = require('./jobs/heatStatusJob');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -85,6 +89,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/sows', sowRoutes);
 app.use('/api/boars', boarRoutes);
 app.use('/api/heats', heatRoutes);
+app.use('/api/services', serviceRoutes);
 
 // Manejo de rutas no encontradas
 app.use((req, res) => {
@@ -108,6 +113,11 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
   console.log(`📝 Documentación en http://localhost:${PORT}`);
+  
+  // Iniciar jobs automáticos
+  console.log('⏰ Iniciando jobs automáticos...');
+  heatStatusJob.start();
+  console.log('✅ Job de actualización de celos activado (se ejecuta diariamente a las 2:00 AM)');
 });
 
 module.exports = app;

@@ -235,13 +235,17 @@ export const userService = {
   deleteUser
 };
 
-// ==================== OTROS SERVICIOS (placeholders temporales) ====================
-// Estos servicios se implementarán según se necesiten
+// ==================== SOW SERVICE ====================
 
-export const pigService = {
-  // Métodos relacionados con cerdos/cerdas
-  getAllSows: async () => {
-    const response = await api.get('/sows');
+export const sowService = {
+  getAllSows: async (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key]) params.append(key, filters[key]);
+    });
+    const queryString = params.toString();
+    const url = queryString ? `/sows?${queryString}` : '/sows';
+    const response = await api.get(url);
     return response.data.data || [];
   },
   
@@ -280,9 +284,30 @@ export const pigService = {
     return response.data.data;
   },
   
-  // Métodos relacionados con verracos
-  getAllBoars: async () => {
-    const response = await api.get('/boars');
+  uploadPhoto: async (file) => {
+    const formData = new FormData();
+    formData.append('photo', file);
+    
+    const response = await api.post('/sows/upload-photo', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data.data.photo_url;
+  }
+};
+
+// ==================== BOAR SERVICE ====================
+
+export const boarService = {
+  getAllBoars: async (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key]) params.append(key, filters[key]);
+    });
+    const queryString = params.toString();
+    const url = queryString ? `/boars?${queryString}` : '/boars';
+    const response = await api.get(url);
     return response.data.data || [];
   },
   
@@ -319,21 +344,14 @@ export const pigService = {
   getBoarStats: async () => {
     const response = await api.get('/boars/stats');
     return response.data.data;
-  },
-  
-  // Subir foto (funciona para cerdas y verracos)
-  uploadPhoto: async (file) => {
-    const formData = new FormData();
-    formData.append('photo', file);
-    
-    const response = await api.post('/sows/upload-photo', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
-    // Retornar solo la URL de la foto
-    return response.data.data.photo_url;
   }
+};
+
+// ==================== PIG SERVICE (Legacy - mantener compatibilidad) ====================
+
+export const pigService = {
+  ...sowService,
+  ...boarService
 };
 
 // ==================== HEAT SERVICE ====================
@@ -414,6 +432,70 @@ export const heatService = {
   // Eliminar celo
   deleteHeat: async (id) => {
     const response = await api.delete(`/heats/${id}`);
+    return response.data;
+  }
+};
+
+// ==================== SERVICE SERVICE ====================
+
+export const serviceService = {
+  // Obtener todos los servicios
+  getAllServices: async (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key]) params.append(key, filters[key]);
+    });
+    const queryString = params.toString();
+    const url = queryString ? `/services?${queryString}` : '/services';
+    const response = await api.get(url);
+    return response.data.data || [];
+  },
+  
+  // Obtener un servicio por ID
+  getServiceById: async (id) => {
+    const response = await api.get(`/services/${id}`);
+    return response.data.data;
+  },
+  
+  // Obtener servicios de una cerda
+  getServicesBySow: async (sowId) => {
+    const response = await api.get(`/services/sow/${sowId}`);
+    return response.data.data || [];
+  },
+  
+  // Obtener servicios de un celo
+  getServicesByHeat: async (heatId) => {
+    const response = await api.get(`/services/heat/${heatId}`);
+    return response.data.data || [];
+  },
+  
+  // Obtener estadísticas de servicios
+  getServiceStats: async (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key]) params.append(key, filters[key]);
+    });
+    const queryString = params.toString();
+    const url = queryString ? `/services/stats?${queryString}` : '/services/stats';
+    const response = await api.get(url);
+    return response.data.data;
+  },
+  
+  // Crear nuevo servicio
+  createService: async (serviceData) => {
+    const response = await api.post('/services', serviceData);
+    return response.data;
+  },
+  
+  // Actualizar servicio
+  updateService: async (id, serviceData) => {
+    const response = await api.put(`/services/${id}`, serviceData);
+    return response.data.data;
+  },
+  
+  // Eliminar servicio
+  deleteService: async (id) => {
+    const response = await api.delete(`/services/${id}`);
     return response.data;
   }
 };

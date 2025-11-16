@@ -65,7 +65,7 @@ export function Sidebar() {
     if (pathname?.includes("/sows")) {
       setOpenMenus((prev) => ({ ...prev, sows: true }))
     }
-    if (pathname?.includes("/critical-periods") || pathname?.includes("/reproductive-parameters") || pathname?.includes("/heats")) {
+    if (pathname?.includes("/critical-periods") || pathname?.includes("/reproductive-parameters") || pathname?.includes("/heats") || pathname?.includes("/services")) {
       setOpenMenus((prev) => ({ ...prev, reproductive: true }))
     }
   }, [pathname])
@@ -184,7 +184,7 @@ export function Sidebar() {
               icon={<Activity className="h-5 w-5" />}
               label="Datos Reproductivos"
               href="/critical-periods"
-              isActive={pathname?.includes("/critical-periods") || pathname?.includes("/reproductive-parameters") || pathname?.includes("/heats")}
+              isActive={pathname?.includes("/critical-periods") || pathname?.includes("/reproductive-parameters") || pathname?.includes("/heats") || pathname?.includes("/services")}
               collapsed={collapsed}
             />
           ) : (
@@ -212,6 +212,13 @@ export function Sidebar() {
                   label="Celos/Estros"
                   href="/heats"
                   isActive={pathname?.includes("/heats")}
+                  collapsed={collapsed}
+                />
+                <NavItem
+                  icon={<Activity className="h-5 w-5" />}
+                  label="Servicios"
+                  href="/services"
+                  isActive={pathname?.includes("/services")}
                   collapsed={collapsed}
                 />
                 <NavItem
