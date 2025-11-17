@@ -12,6 +12,7 @@ const pregnancyModel = {
         s.breed as sow_breed,
         srv.service_date,
         srv.service_type,
+        srv.boar_id as boar_id,
         b.ear_tag as boar_ear_tag,
         b.name as boar_name
       FROM pregnancies p
@@ -102,6 +103,7 @@ const pregnancyModel = {
         srv.service_time,
         srv.service_number,
         srv.technician_name,
+        srv.boar_id as boar_id,
         b.ear_tag as boar_ear_tag,
         b.name as boar_name,
         b.breed as boar_breed
@@ -122,6 +124,7 @@ const pregnancyModel = {
         p.*,
         srv.service_date,
         srv.service_type,
+        srv.boar_id as boar_id,
         b.ear_tag as boar_ear_tag,
         b.name as boar_name
       FROM pregnancies p

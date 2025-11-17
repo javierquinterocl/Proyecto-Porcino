@@ -125,7 +125,7 @@ const ServicesList = () => {
 
     setIsDeleting(true);
     try {
-      await serviceService.deleteService(serviceToDelete.service_id);
+      await serviceService.deleteService(serviceToDelete.id);
       
       toast({
         title: "¡Éxito!",
@@ -141,7 +141,7 @@ const ServicesList = () => {
       console.error('Error deleting service:', error);
       toast({
         title: "Error al eliminar",
-        description: error.response?.data?.error || "No se pudo eliminar el servicio",
+        description: error.response?.data?.message || "No se pudo eliminar el servicio",
         variant: "destructive"
       });
     } finally {

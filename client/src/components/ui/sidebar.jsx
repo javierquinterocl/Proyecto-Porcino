@@ -19,7 +19,8 @@ import {
   PiggyBank,
   Activity,
   Thermometer,
-  Heart
+  Heart,
+  Baby
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -66,7 +67,7 @@ export function Sidebar() {
     if (pathname?.includes("/sows")) {
       setOpenMenus((prev) => ({ ...prev, sows: true }))
     }
-    if (pathname?.includes("/critical-periods") || pathname?.includes("/reproductive-parameters") || pathname?.includes("/heats") || pathname?.includes("/services")) {
+    if (pathname?.includes("/critical-periods") || pathname?.includes("/reproductive-parameters") || pathname?.includes("/heats") || pathname?.includes("/services") || pathname?.includes("/pregnancies") || pathname?.includes("/births")) {
       setOpenMenus((prev) => ({ ...prev, reproductive: true }))
     }
   }, [pathname])
@@ -185,7 +186,7 @@ export function Sidebar() {
               icon={<Activity className="h-5 w-5" />}
               label="Datos Reproductivos"
               href="/critical-periods"
-              isActive={pathname?.includes("/critical-periods") || pathname?.includes("/reproductive-parameters") || pathname?.includes("/heats") || pathname?.includes("/services")}
+              isActive={pathname?.includes("/critical-periods") || pathname?.includes("/reproductive-parameters") || pathname?.includes("/heats") || pathname?.includes("/services") || pathname?.includes("/pregnancies") || pathname?.includes("/births")}
               collapsed={collapsed}
             />
           ) : (
@@ -227,6 +228,13 @@ export function Sidebar() {
                   label="Gestaciones"
                   href="/pregnancies"
                   isActive={pathname?.includes("/pregnancies")}
+                  collapsed={collapsed}
+                />
+                <NavItem
+                  icon={<Baby className="h-5 w-5" />}
+                  label="Partos"
+                  href="/births"
+                  isActive={pathname?.includes("/births")}
                   collapsed={collapsed}
                 />
                 <NavItem

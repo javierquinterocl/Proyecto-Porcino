@@ -616,4 +616,86 @@ export const reproductiveDataService = {
   // Métodos relacionados con datos reproductivos
 };
 
+// ==================== BIRTH SERVICE ====================
+
+export const birthService = {
+  // Obtener todos los partos
+  getAllBirths: async (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key]) params.append(key, filters[key]);
+    });
+    const queryString = params.toString();
+    const url = queryString ? `/births?${queryString}` : '/births';
+    const response = await api.get(url);
+    return response.data.data || [];
+  },
+  
+  // Obtener parto por ID
+  getBirthById: async (id) => {
+    const response = await api.get(`/births/${id}`);
+    return response.data.data;
+  },
+  
+  // Obtener partos de una cerda
+  getBirthsBySowId: async (sowId) => {
+    const response = await api.get(`/births/sow/${sowId}`);
+    return response.data.data || [];
+  },
+  
+  // Obtener último parto de una cerda
+  getLastBirthBySowId: async (sowId) => {
+    const response = await api.get(`/births/sow/${sowId}/last`);
+    return response.data.data;
+  },
+  
+  // Obtener partos recientes
+  getRecentBirths: async (days = 30) => {
+    const response = await api.get(`/births/recent?days=${days}`);
+    return response.data.data || [];
+  },
+  
+  // Obtener partos problemáticos
+  getProblematicBirths: async () => {
+    const response = await api.get('/births/problematic');
+    return response.data.data || [];
+  },
+  
+  // Obtener estadísticas de partos
+  getBirthStats: async (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key]) params.append(key, filters[key]);
+    });
+    const queryString = params.toString();
+    const url = queryString ? `/births/stats?${queryString}` : '/births/stats';
+    const response = await api.get(url);
+    return response.data.data;
+  },
+  
+  // Crear nuevo parto
+  createBirth: async (birthData) => {
+    const response = await api.post('/births', birthData);
+    return response.data;
+  },
+  
+  // Actualizar parto completo
+  updateBirth: async (id, birthData) => {
+    const response = await api.put(`/births/${id}`, birthData);
+    return response.data.data;
+  },
+  
+  // Actualizar campos específicos del parto
+  partialUpdateBirth: async (id, birthData) => {
+    const response = await api.patch(`/births/${id}`, birthData);
+    return response.data;
+  },
+  
+  // Eliminar parto
+  deleteBirth: async (id) => {
+    const response = await api.delete(`/births/${id}`);
+    return response.data;
+  }
+};
+
 export default api;
