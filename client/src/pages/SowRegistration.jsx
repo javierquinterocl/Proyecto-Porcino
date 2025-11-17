@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,15 +7,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { pigService } from "@/services/api";
-import { ArrowLeft, PiggyBank, Users, Upload, X, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, PiggyBank, Upload, X, Image as ImageIcon } from "lucide-react";
 
 export default function SowRegistration() {
   const navigate = useNavigate();
+  const { id } = useParams();
   const { toast } = useToast();
+  
+  const isEditMode = !!id;
+  const [isLoadingData, setIsLoadingData] = useState(false);
   
   const [animalType, setAnimalType] = useState(""); // "cerda" o "verraco"
   const [isLoading, setIsLoading] = useState(false);
-  const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   
@@ -62,6 +65,98 @@ export default function SowRegistration() {
 
   const [errors, setErrors] = useState({});
 
+  // Cargar datos de la cerda si estamos en modo edición
+  useEffect(() => {
+    if (id) {
+      loadSowData(id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  const loadSowData = async (sowId) => {
+    try {
+      setIsLoadingData(true);
+      const sow = await pigService.getSowById(sowId);
+      
+      // Verificar que no esté descartada
+      if (sow.status === 'descartada') {
+        toast({
+          title: "No permitido",
+          description: "No se puede editar una cerda descartada. El descarte es un estado final.",
+          variant: "destructive"
+        });
+        navigate("/sows/list");
+        return;
+      }
+
+      // Función para formatear fechas a YYYY-MM-DD para inputs
+      const formatDateForInput = (dateString) => {
+        if (!dateString) return "";
+        try {
+          const date = new Date(dateString);
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        } catch {
+          return "";
+        }
+      };
+
+      // Cargar datos en el formulario
+      setFormData({
+        ear_tag: sow.ear_tag || "",
+        id_type: sow.id_type || "arete",
+        alias: sow.alias || "",
+        breed: sow.breed || "",
+        genetic_line: sow.genetic_line || "",
+        generation: sow.generation || "",
+        sire_tag: sow.sire_tag || "",
+        dam_tag: sow.dam_tag || "",
+        birth_date: formatDateForInput(sow.birth_date),
+        entry_date: formatDateForInput(sow.entry_date),
+        origin: sow.origin || "propia",
+        status: sow.status || "activa",
+        location: sow.location || "",
+        farm_name: sow.farm_name || "",
+        current_weight: sow.current_weight?.toString() || "",
+        min_service_weight: sow.min_service_weight?.toString() || "120",
+        body_condition: sow.body_condition?.toString() || "",
+        last_weight_date: formatDateForInput(sow.last_weight_date),
+        parity_count: sow.parity_count?.toString() || "0",
+        total_piglets_born: sow.total_piglets_born?.toString() || "0",
+        total_piglets_alive: sow.total_piglets_alive?.toString() || "0",
+        total_piglets_dead: sow.total_piglets_dead?.toString() || "0",
+        total_abortions: sow.total_abortions?.toString() || "0",
+        avg_piglets_alive: sow.avg_piglets_alive?.toString() || "",
+        reproductive_status: sow.reproductive_status || "vacia",
+        last_service_date: formatDateForInput(sow.last_service_date),
+        last_parturition_date: formatDateForInput(sow.last_parturition_date),
+        expected_farrowing_date: formatDateForInput(sow.expected_farrowing_date),
+        last_weaning_date: formatDateForInput(sow.last_weaning_date),
+        photo_url: sow.photo_url || ""
+      });
+
+      // Si hay imagen, cargarla como preview
+      if (sow.photo_url) {
+        setImagePreview(sow.photo_url);
+      }
+
+      // Forzar selección de tipo "cerda" en modo edición
+      setAnimalType("cerda");
+    } catch (error) {
+      console.error("Error cargando datos de la cerda:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los datos de la cerda",
+        variant: "destructive"
+      });
+      navigate("/sows/list");
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
   // Manejar selección de imagen
   const handleImageSelect = async (e) => {
     const file = e.target.files?.[0];
@@ -97,8 +192,7 @@ export default function SowRegistration() {
     };
     reader.readAsDataURL(file);
     
-    // Guardar archivo y subir al servidor
-    setImageFile(file);
+    // Subir al servidor
     await uploadImageToServer(file);
   };
 
@@ -132,7 +226,6 @@ export default function SowRegistration() {
       
       // Limpiar preview si falla
       setImagePreview(null);
-      setImageFile(null);
     } finally {
       setIsUploadingImage(false);
     }
@@ -140,7 +233,6 @@ export default function SowRegistration() {
 
   // Remover imagen
   const handleRemoveImage = () => {
-    setImageFile(null);
     setImagePreview(null);
     handleInputChange("photo_url", "");
   };
@@ -243,13 +335,25 @@ export default function SowRegistration() {
 
       console.log('Datos a enviar:', { ...dataToSend, photo_url: dataToSend.photo_url ? 'IMAGE_DATA' : 'null' });
       
-      await pigService.createSow(dataToSend);
-      
-      toast({
-        title: "¡Éxito!",
-        description: "Cerda registrada exitosamente",
-        variant: "default"
-      });
+      if (isEditMode) {
+        // Modo edición - actualizar cerda existente
+        await pigService.updateSow(id, dataToSend);
+        
+        toast({
+          title: "¡Éxito!",
+          description: "Cerda actualizada exitosamente",
+          variant: "default"
+        });
+      } else {
+        // Modo creación - crear nueva cerda
+        await pigService.createSow(dataToSend);
+        
+        toast({
+          title: "¡Éxito!",
+          description: "Cerda registrada exitosamente",
+          variant: "default"
+        });
+      }
       
       // Redirigir a la lista de reproductoras
       setTimeout(() => {
@@ -257,9 +361,9 @@ export default function SowRegistration() {
       }, 1500);
       
     } catch (error) {
-      console.error("Error al registrar cerda:", error);
+      console.error(`Error al ${isEditMode ? 'actualizar' : 'registrar'} cerda:`, error);
       
-      let errorMessage = "No se pudo registrar la cerda";
+      let errorMessage = `No se pudo ${isEditMode ? 'actualizar' : 'registrar'} la cerda`;
       
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
@@ -268,7 +372,7 @@ export default function SowRegistration() {
       }
       
       toast({
-        title: "Error al registrar",
+        title: `Error al ${isEditMode ? 'actualizar' : 'registrar'}`,
         description: errorMessage,
         variant: "destructive"
       });
@@ -277,14 +381,14 @@ export default function SowRegistration() {
     }
   };
 
-  // Renderizar selector de tipo de animal
-  if (!animalType) {
+  // Renderizar selector de tipo de animal (solo en modo creación)
+  if (!animalType && !isEditMode) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
+      <div className="bg-gradient-to-br from-green-50 to-blue-50 p-6">
         <div className="max-w-4xl mx-auto">
           <Button
             variant="ghost"
-            onClick={() => navigate("/sows/basic-data")}
+            onClick={() => navigate("/sows/list")}
             className="mb-6"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -325,7 +429,7 @@ export default function SowRegistration() {
               >
                 <div className="flex flex-col items-center space-y-4">
                   <div className="rounded-full bg-blue-100 p-6 transition-colors group-hover:bg-blue-500">
-                    <Users className="h-16 w-16 text-blue-600 group-hover:text-white" />
+                    <PiggyBank className="h-16 w-16 text-blue-600 group-hover:text-white" />
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900">Verraco</h3>
                   <p className="text-center text-gray-600">
@@ -342,15 +446,15 @@ export default function SowRegistration() {
 
   // Formulario de registro de cerda
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
+    <div className="bg-gradient-to-br from-green-50 to-blue-50 p-6">
       <div className="max-w-6xl mx-auto">
         <Button
           variant="ghost"
-          onClick={() => setAnimalType("")}
+          onClick={() => isEditMode ? navigate("/sows/list") : setAnimalType("")}
           className="mb-6"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Cambiar tipo de animal
+          {isEditMode ? "Volver a la lista" : "Cambiar tipo de animal"}
         </Button>
         
         <Card className="border-0 shadow-xl">
@@ -358,16 +462,28 @@ export default function SowRegistration() {
             <div className="flex items-center space-x-3">
               <PiggyBank className="h-8 w-8" />
               <div>
-                <CardTitle className="text-2xl">Registro de Cerda</CardTitle>
+                <CardTitle className="text-2xl">
+                  {isEditMode ? "Editar Cerda" : "Registro de Cerda"}
+                </CardTitle>
                 <CardDescription className="text-pink-100">
-                  Completa todos los campos obligatorios (*) para registrar una nueva cerda
+                  {isEditMode 
+                    ? "Modifica los campos que deseas actualizar. El arete no se puede modificar." 
+                    : "Completa todos los campos obligatorios (*) para registrar una nueva cerda"}
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
           
           <CardContent className="p-8">
-            <form onSubmit={handleSubmit} className="space-y-8">
+            {isLoadingData ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Cargando datos de la cerda...</p>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-8">
               {/* Sección 1: Identificación */}
               <div>
                 <h3 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-pink-200">
@@ -383,10 +499,12 @@ export default function SowRegistration() {
                       value={formData.ear_tag}
                       onChange={(e) => handleInputChange("ear_tag", e.target.value.toUpperCase())}
                       placeholder="A001"
-                      className={errors.ear_tag ? "border-red-500" : ""}
+                      className={`${errors.ear_tag ? "border-red-500" : ""} ${isEditMode ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                      disabled={isEditMode}
                       required
                     />
                     {errors.ear_tag && <p className="text-xs text-red-500 mt-1">{errors.ear_tag}</p>}
+                    {isEditMode && <p className="text-xs text-gray-500 mt-1">El arete no se puede modificar</p>}
                   </div>
                   
                   <div>
@@ -900,7 +1018,7 @@ export default function SowRegistration() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate("/sows/basic-data")}
+                  onClick={() => navigate("/sows/list")}
                   disabled={isLoading}
                 >
                   Cancelar
@@ -910,10 +1028,11 @@ export default function SowRegistration() {
                   disabled={isLoading}
                   className="bg-pink-600 hover:bg-pink-700"
                 >
-                  {isLoading ? "Registrando..." : "Registrar Cerda"}
+                  {isLoading ? (isEditMode ? "Actualizando..." : "Registrando...") : (isEditMode ? "Actualizar Cerda" : "Registrar Cerda")}
                 </Button>
               </div>
             </form>
+            )}
           </CardContent>
         </Card>
       </div>

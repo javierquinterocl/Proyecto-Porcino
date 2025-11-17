@@ -249,11 +249,20 @@ const ServiceRegistration = () => {
                         {heats.length === 0 && (
                           <SelectItem value="empty" disabled>No hay celos disponibles</SelectItem>
                         )}
-                        {heats.map((heat) => (
-                          <SelectItem key={heat.id} value={heat.id.toString()}>
-                            {heat.sow_code} - {heat.heat_date}
-                          </SelectItem>
-                        ))}
+                        {heats.map((heat) => {
+                          // Format date to readable format: "DD/MM/YYYY HH:MM"
+                          const sowCode = heat.sow_ear_tag || heat.sow_code || 'Sin cerda';
+                          const date = new Date(heat.heat_date);
+                          const formattedDate = date.toLocaleDateString('es-ES');
+                          const formattedTime = heat.detection_time ? heat.detection_time.substring(0, 5) : '';
+                          const displayText = `${sowCode} - ${formattedDate}${formattedTime ? ' ' + formattedTime : ''}`;
+                          
+                          return (
+                            <SelectItem key={heat.id} value={heat.id.toString()}>
+                              {displayText}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>

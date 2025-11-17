@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,11 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { pigService } from "@/services/api";
-import { ArrowLeft, Users, Upload, X, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, PiggyBank, Upload, X, Image as ImageIcon } from "lucide-react";
 
 export default function BoarRegistration() {
   const navigate = useNavigate();
+  const { id } = useParams();
   const { toast } = useToast();
+  
+  const isEditMode = !!id;
+  const [isLoadingData, setIsLoadingData] = useState(false);
   
   const [isLoading, setIsLoading] = useState(false);
   const [_imageFile, setImageFile] = useState(null);
@@ -55,6 +59,87 @@ export default function BoarRegistration() {
   });
 
   const [errors, setErrors] = useState({});
+
+  // Cargar datos del verraco si estamos en modo edición
+  useEffect(() => {
+    if (id) {
+      loadBoarData(id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  const loadBoarData = async (boarId) => {
+    try {
+      setIsLoadingData(true);
+      const boar = await pigService.getBoarById(boarId);
+      
+      // Verificar que no esté descartado
+      if (boar.status === 'descartado') {
+        toast({
+          title: "No permitido",
+          description: "No se puede editar un verraco descartado. El descarte es un estado final.",
+          variant: "destructive"
+        });
+        navigate("/sows/list");
+        return;
+      }
+
+      // Función para formatear fechas a YYYY-MM-DD para inputs
+      const formatDateForInput = (dateString) => {
+        if (!dateString) return "";
+        try {
+          const date = new Date(dateString);
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        } catch {
+          return "";
+        }
+      };
+
+      // Cargar datos en el formulario
+      setFormData({
+        ear_tag: boar.ear_tag || "",
+        id_type: boar.id_type || "arete",
+        name: boar.name || "",
+        breed: boar.breed || "",
+        genetic_line: boar.genetic_line || "",
+        generation: boar.generation?.toString() || "",
+        sire_ear_tag: boar.sire_ear_tag || "",
+        dam_ear_tag: boar.dam_ear_tag || "",
+        birth_date: formatDateForInput(boar.birth_date),
+        entry_date: formatDateForInput(boar.entry_date),
+        origin: boar.origin || "propio",
+        status: boar.status || "activo",
+        location: boar.location || "",
+        farm_name: boar.farm_name || "",
+        current_weight: boar.current_weight?.toString() || "",
+        boar_type: boar.boar_type || "fisico",
+        supplier_name: boar.supplier_name || "",
+        supplier_code: boar.supplier_code || "",
+        notes: boar.notes || "",
+        photo_url: boar.photo_url || "",
+        total_services: boar.total_services?.toString() || "0",
+        last_service_date: formatDateForInput(boar.last_service_date)
+      });
+
+      // Si hay imagen, cargarla como preview
+      if (boar.photo_url) {
+        setImagePreview(boar.photo_url);
+      }
+    } catch (error) {
+      console.error("Error cargando datos del verraco:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los datos del verraco",
+        variant: "destructive"
+      });
+      navigate("/sows/list");
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
 
   // Manejar selección de imagen
   const handleImageSelect = async (e) => {
@@ -242,13 +327,25 @@ export default function BoarRegistration() {
         dataToSend.current_weight = null;
       }
       
-      await pigService.createBoar(dataToSend);
-      
-      toast({
-        title: "¡Éxito!",
-        description: "Verraco registrado exitosamente",
-        variant: "default"
-      });
+      if (isEditMode) {
+        // Modo edición - actualizar verraco existente
+        await pigService.updateBoar(id, dataToSend);
+        
+        toast({
+          title: "¡Éxito!",
+          description: "Verraco actualizado exitosamente",
+          variant: "default"
+        });
+      } else {
+        // Modo creación - crear nuevo verraco
+        await pigService.createBoar(dataToSend);
+        
+        toast({
+          title: "¡Éxito!",
+          description: "Verraco registrado exitosamente",
+          variant: "default"
+        });
+      }
       
       // Redirigir a la lista de reproductoras
       setTimeout(() => {
@@ -256,9 +353,9 @@ export default function BoarRegistration() {
       }, 1500);
       
     } catch (error) {
-      console.error("Error al registrar verraco:", error);
+      console.error(`Error al ${isEditMode ? 'actualizar' : 'registrar'} verraco:`, error);
       
-      let errorMessage = "No se pudo registrar el verraco";
+      let errorMessage = `No se pudo ${isEditMode ? 'actualizar' : 'registrar'} el verraco`;
       
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
@@ -267,7 +364,7 @@ export default function BoarRegistration() {
       }
       
       toast({
-        title: "Error al registrar",
+        title: `Error al ${isEditMode ? 'actualizar' : 'registrar'}`,
         description: errorMessage,
         variant: "destructive"
       });
@@ -278,11 +375,11 @@ export default function BoarRegistration() {
 
   // Renderizar formulario
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
+    <div className="bg-gradient-to-br from-green-50 to-blue-50 p-6">
       <div className="max-w-6xl mx-auto">
         <Button
           variant="ghost"
-          onClick={() => navigate("/sows/basic-data")}
+          onClick={() => navigate("/sows/list")}
           className="mb-6"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -292,18 +389,30 @@ export default function BoarRegistration() {
         <Card className="border-0 shadow-xl">
           <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
             <div className="flex items-center space-x-3">
-              <Users className="h-8 w-8" />
+              <PiggyBank className="h-8 w-8" />
               <div>
-                <CardTitle className="text-2xl">Registro de Verraco</CardTitle>
+                <CardTitle className="text-2xl">
+                  {isEditMode ? "Editar Verraco" : "Registro de Verraco"}
+                </CardTitle>
                 <CardDescription className="text-blue-100">
-                  Completa todos los campos obligatorios (*) para registrar un nuevo verraco
+                  {isEditMode 
+                    ? "Modifica los campos que deseas actualizar. El arete no se puede modificar." 
+                    : "Completa todos los campos obligatorios (*) para registrar un nuevo verraco"}
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
           
           <CardContent className="p-8">
-            <form onSubmit={handleSubmit} className="space-y-8">
+            {isLoadingData ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Cargando datos del verraco...</p>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-8">
               {/* Sección 1: Tipo de Verraco */}
               <div>
                 <h3 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-200">
@@ -314,8 +423,8 @@ export default function BoarRegistration() {
                     <Label htmlFor="boar_type" className="text-sm font-semibold">
                       Tipo de Verraco *
                     </Label>
-                    <Select value={formData.boar_type} onValueChange={(value) => handleInputChange("boar_type", value)}>
-                      <SelectTrigger className={errors.boar_type ? "border-red-500" : ""}>
+                    <Select value={formData.boar_type} onValueChange={(value) => handleInputChange("boar_type", value)} disabled={isEditMode}>
+                      <SelectTrigger className={`${errors.boar_type ? "border-red-500" : ""} ${isEditMode ? "bg-gray-100 cursor-not-allowed" : ""}`}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -324,11 +433,14 @@ export default function BoarRegistration() {
                       </SelectContent>
                     </Select>
                     {errors.boar_type && <p className="text-xs text-red-500 mt-1">{errors.boar_type}</p>}
-                    <p className="text-xs text-gray-500 mt-1">
-                      {formData.boar_type === 'fisico' 
-                        ? "Verraco presente físicamente en la granja" 
-                        : "Semen adquirido de un proveedor externo"}
-                    </p>
+                    {isEditMode && <p className="text-xs text-gray-500 mt-1">El tipo de verraco no se puede modificar</p>}
+                    {!isEditMode && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {formData.boar_type === 'fisico' 
+                          ? "Verraco presente físicamente en la granja" 
+                          : "Semen adquirido de un proveedor externo"}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -348,10 +460,12 @@ export default function BoarRegistration() {
                       value={formData.ear_tag}
                       onChange={(e) => handleInputChange("ear_tag", e.target.value.toUpperCase())}
                       placeholder="V001"
-                      className={errors.ear_tag ? "border-red-500" : ""}
+                      className={`${errors.ear_tag ? "border-red-500" : ""} ${isEditMode ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                      disabled={isEditMode}
                       required
                     />
                     {errors.ear_tag && <p className="text-xs text-red-500 mt-1">{errors.ear_tag}</p>}
+                    {isEditMode && <p className="text-xs text-gray-500 mt-1">El arete no se puede modificar</p>}
                   </div>
                   
                   <div>
@@ -715,7 +829,7 @@ export default function BoarRegistration() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate("/sows/basic-data")}
+                  onClick={() => navigate("/sows/list")}
                   disabled={isLoading}
                 >
                   Cancelar
@@ -725,10 +839,11 @@ export default function BoarRegistration() {
                   disabled={isLoading}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  {isLoading ? "Registrando..." : "Registrar Verraco"}
+                  {isLoading ? (isEditMode ? "Actualizando..." : "Registrando...") : (isEditMode ? "Actualizar Verraco" : "Registrar Verraco")}
                 </Button>
               </div>
             </form>
+            )}
           </CardContent>
         </Card>
       </div>

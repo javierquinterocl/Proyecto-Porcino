@@ -496,103 +496,151 @@ export default function HeatsList() {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Detalles del Celo</DialogTitle>
-            <DialogDescription>Información completa del evento</DialogDescription>
+            <DialogDescription>Información completa del evento reproductivo</DialogDescription>
           </DialogHeader>
           {viewDialog.heat && (
-            <div className="space-y-4">
-              {/* Información básica */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">ID</label>
-                  <p className="text-sm">#{viewDialog.heat.id}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Estado</label>
-                  <div className="mt-1">{getStatusBadge(viewDialog.heat.status)}</div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Cerda</label>
-                  <p className="text-sm">{viewDialog.heat.sow_ear_tag} {viewDialog.heat.sow_alias && `- ${viewDialog.heat.sow_alias}`}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Granja</label>
-                  <p className="text-sm">{viewDialog.heat.farm_name}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Fecha del Celo</label>
-                  <p className="text-sm">{formatDate(viewDialog.heat.heat_date)}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Hora de Detección</label>
-                  <p className="text-sm">{formatTime(viewDialog.heat.detection_time)}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Fecha de Fin</label>
-                  <p className="text-sm">{formatDate(viewDialog.heat.heat_end_date)}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Intensidad</label>
-                  <div className="mt-1">{getIntensityBadge(viewDialog.heat.intensity)}</div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Duración</label>
-                  <p className="text-sm">{viewDialog.heat.duration_hours ? `${viewDialog.heat.duration_hours} horas` : '-'}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Tipo</label>
-                  <p className="text-sm">{viewDialog.heat.heat_type}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Método de Detección</label>
-                  <p className="text-sm">{viewDialog.heat.detection_method}</p>
+            <div className="space-y-6">
+              {/* Información General */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 pb-2 border-b">
+                  Información General
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Cerda</label>
+                    <p className="font-medium">{viewDialog.heat.sow_ear_tag}</p>
+                    {viewDialog.heat.sow_alias && (
+                      <p className="text-sm text-muted-foreground">{viewDialog.heat.sow_alias}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Estado</label>
+                    <div className="mt-1">{getStatusBadge(viewDialog.heat.status)}</div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Granja</label>
+                    <p className="font-medium">{viewDialog.heat.farm_name || 'No especificada'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">ID del Celo</label>
+                    <p className="font-medium">#{viewDialog.heat.id}</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Celo franco */}
-              {(viewDialog.heat.peak_estrus_date || viewDialog.heat.peak_estrus_time) && (
-                <div>
-                  <h3 className="text-sm font-semibold mb-2">Celo Franco</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Fecha</label>
-                      <p className="text-sm">{formatDate(viewDialog.heat.peak_estrus_date)}</p>
+              {/* Fechas y Tiempos */}
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h3 className="text-lg font-semibold mb-3 text-blue-900">
+                  Fechas y Tiempos
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Fecha del Celo</label>
+                    <p className="font-medium">{formatDate(viewDialog.heat.heat_date)}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Hora de Detección</label>
+                    <p className="font-medium">{formatTime(viewDialog.heat.detection_time)}</p>
+                  </div>
+                  {viewDialog.heat.heat_end_date && (
+                    <>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Fecha de Fin</label>
+                        <p className="font-medium">{formatDate(viewDialog.heat.heat_end_date)}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Duración Total</label>
+                        <p className="font-medium">{viewDialog.heat.duration_hours ? `${viewDialog.heat.duration_hours} horas` : '-'}</p>
+                      </div>
+                    </>
+                  )}
+                  {(viewDialog.heat.peak_estrus_date || viewDialog.heat.peak_estrus_time) && (
+                    <>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Fecha Celo Franco</label>
+                        <p className="font-medium">{formatDate(viewDialog.heat.peak_estrus_date)}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground">Hora Celo Franco</label>
+                        <p className="font-medium">{formatTime(viewDialog.heat.peak_estrus_time)}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Características del Celo */}
+              <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                <h3 className="text-lg font-semibold mb-3 text-purple-900">
+                  Características
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Intensidad</label>
+                    <div className="mt-1">{getIntensityBadge(viewDialog.heat.intensity)}</div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Tipo de Celo</label>
+                    <Badge variant={viewDialog.heat.heat_type === 'natural' ? 'default' : 'secondary'} className="capitalize">
+                      {viewDialog.heat.heat_type}
+                    </Badge>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-xs font-medium text-muted-foreground">Método de Detección</label>
+                    <p className="font-medium capitalize">{viewDialog.heat.detection_method}</p>
+                  </div>
+                  {viewDialog.heat.detection_method === 'verraco detector' && (
+                    <div className="col-span-2">
+                      <label className="text-xs font-medium text-muted-foreground">Verraco Detector</label>
+                      <p className="font-medium">{viewDialog.heat.boar_detector_ear_tag || viewDialog.heat.boar_detector_name || 'No especificado'}</p>
+                      {viewDialog.heat.boar_detector_id && (
+                        <p className="text-sm text-muted-foreground">ID: #{viewDialog.heat.boar_detector_id}</p>
+                      )}
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Hora</label>
-                      <p className="text-sm">{formatTime(viewDialog.heat.peak_estrus_time)}</p>
-                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Signos Clínicos */}
+              {(viewDialog.heat.standing_reflex || viewDialog.heat.vulva_swelling || viewDialog.heat.vulva_discharge || 
+                viewDialog.heat.mounting_behavior || viewDialog.heat.restlessness || viewDialog.heat.loss_of_appetite ||
+                viewDialog.heat.vocalization || viewDialog.heat.ear_erection || viewDialog.heat.tail_deviation ||
+                viewDialog.heat.frequent_urination || viewDialog.heat.sniffing_genital || viewDialog.heat.back_arching) && (
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <h3 className="text-lg font-semibold mb-3 text-green-900">
+                    Signos Clínicos Observados
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {viewDialog.heat.standing_reflex && <Badge variant="outline" className="justify-center">Reflejo de Inmovilidad</Badge>}
+                    {viewDialog.heat.vulva_swelling && <Badge variant="outline" className="justify-center">Hinchazón Vulvar</Badge>}
+                    {viewDialog.heat.vulva_discharge && <Badge variant="outline" className="justify-center">Descarga Vaginal</Badge>}
+                    {viewDialog.heat.mounting_behavior && <Badge variant="outline" className="justify-center">Monta a Otras</Badge>}
+                    {viewDialog.heat.restlessness && <Badge variant="outline" className="justify-center">Inquietud</Badge>}
+                    {viewDialog.heat.loss_of_appetite && <Badge variant="outline" className="justify-center">Pérdida de Apetito</Badge>}
+                    {viewDialog.heat.vocalization && <Badge variant="outline" className="justify-center">Vocalización</Badge>}
+                    {viewDialog.heat.ear_erection && <Badge variant="outline" className="justify-center">Orejas Erectas</Badge>}
+                    {viewDialog.heat.tail_deviation && <Badge variant="outline" className="justify-center">Cola Desviada</Badge>}
+                    {viewDialog.heat.frequent_urination && <Badge variant="outline" className="justify-center">Micción Frecuente</Badge>}
+                    {viewDialog.heat.sniffing_genital && <Badge variant="outline" className="justify-center">Olfateo Genital</Badge>}
+                    {viewDialog.heat.back_arching && <Badge variant="outline" className="justify-center">Arqueamiento de Espalda</Badge>}
                   </div>
                 </div>
               )}
 
-              {/* Signos clínicos */}
-              <div>
-                <h3 className="text-sm font-semibold mb-2">Signos Clínicos Observados</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {viewDialog.heat.standing_reflex && <Badge variant="outline">Reflejo Inmovilidad</Badge>}
-                  {viewDialog.heat.vulva_swelling && <Badge variant="outline">Hinchazón Vulvar</Badge>}
-                  {viewDialog.heat.vulva_discharge && <Badge variant="outline">Descarga Vaginal</Badge>}
-                  {viewDialog.heat.mounting_behavior && <Badge variant="outline">Monta a Otras</Badge>}
-                  {viewDialog.heat.restlessness && <Badge variant="outline">Inquietud</Badge>}
-                  {viewDialog.heat.loss_of_appetite && <Badge variant="outline">Pérdida Apetito</Badge>}
-                  {viewDialog.heat.vocalization && <Badge variant="outline">Vocalización</Badge>}
-                  {viewDialog.heat.ear_erection && <Badge variant="outline">Orejas Erectas</Badge>}
-                  {viewDialog.heat.tail_deviation && <Badge variant="outline">Cola Desviada</Badge>}
-                  {viewDialog.heat.frequent_urination && <Badge variant="outline">Micción Frecuente</Badge>}
-                  {viewDialog.heat.sniffing_genital && <Badge variant="outline">Olfateo Genital</Badge>}
-                  {viewDialog.heat.back_arching && <Badge variant="outline">Arqueamiento</Badge>}
-                </div>
-              </div>
-
-              {/* Notas */}
+              {/* Observaciones */}
               {viewDialog.heat.notes && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Observaciones</label>
-                  <p className="text-sm mt-1">{viewDialog.heat.notes}</p>
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <label className="text-xs font-medium text-muted-foreground">Observaciones</label>
+                  <p className="font-medium mt-2 whitespace-pre-wrap">{viewDialog.heat.notes}</p>
                 </div>
               )}
             </div>
           )}
+          <DialogFooter>
+            <Button onClick={() => setViewDialog({ open: false, heat: null })}>
+              Cerrar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

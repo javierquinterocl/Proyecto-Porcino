@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from '../components/ui/dialog';
 import { useToast } from '../components/ui/use-toast';
-import { Plus, Search, Eye, Pencil, Trash2, Filter, AlertTriangle, X } from 'lucide-react';
+import { Plus, Search, Eye, Pencil, Trash2, Filter, AlertTriangle, X, CheckCircle } from 'lucide-react';
 import { serviceService } from '../services/api';
 
 const ServicesList = () => {
@@ -334,8 +334,9 @@ const ServicesList = () => {
                   <TableRow>
                     <TableHead>Cerda</TableHead>
                     <TableHead>Tipo</TableHead>
+                    <TableHead>Celo</TableHead>
                     <TableHead>Verraco</TableHead>
-                    <TableHead>Fecha</TableHead>
+                    <TableHead>Fecha Servicio</TableHead>
                     <TableHead>Hora</TableHead>
                     <TableHead>Número</TableHead>
                     <TableHead>Estado</TableHead>
@@ -347,6 +348,7 @@ const ServicesList = () => {
                     <TableRow key={service.id}>
                       <TableCell className="font-medium">{service.sow_code}</TableCell>
                       <TableCell>{getServiceTypeLabel(service.service_type)}</TableCell>
+                      <TableCell>{service.heat_id ? `Celo #${service.heat_id}` : 'N/A'}</TableCell>
                       <TableCell>{service.boar_code || 'N/A'}</TableCell>
                       <TableCell>{service.service_date}</TableCell>
                       <TableCell>{service.service_time?.substring(0, 5)}</TableCell>
@@ -406,92 +408,111 @@ const ServicesList = () => {
           </DialogHeader>
 
           {selectedService && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-muted-foreground">Cerda</Label>
-                  <p className="font-medium">{selectedService.sow_code}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Tipo de Servicio</Label>
-                  <p className="font-medium">{getServiceTypeLabel(selectedService.service_type)}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Fecha</Label>
-                  <p className="font-medium">{selectedService.service_date}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Hora</Label>
-                  <p className="font-medium">{selectedService.service_time?.substring(0, 5)}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Número de Servicio</Label>
-                  <p className="font-medium">{selectedService.service_number}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Técnico</Label>
-                  <p className="font-medium">{selectedService.technician_name || 'No especificado'}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Estado</Label>
-                  <p className="font-medium">{getSuccessLabel(selectedService.success)}</p>
-                </div>
-                {selectedService.has_confirmed_pregnancy && (
-                  <div className="col-span-2">
-                    <Label className="text-muted-foreground">Estado de Preñez</Label>
-                    <p className="font-medium text-green-600">Preñez Confirmada</p>
+            <div className="space-y-6">
+              {/* Información General */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3 pb-2 border-b">Información General</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Cerda</Label>
+                    <p className="font-medium">{selectedService.sow_code}</p>
                   </div>
-                )}
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Tipo de Servicio</Label>
+                    <p className="font-medium">{getServiceTypeLabel(selectedService.service_type)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Celo Asociado</Label>
+                    <p className="font-medium">{selectedService.heat_id ? `Celo #${selectedService.heat_id}` : 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Fecha del Servicio</Label>
+                    <p className="font-medium">{selectedService.service_date}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Hora del Servicio</Label>
+                    <p className="font-medium">{selectedService.service_time?.substring(0, 5) || 'No especificada'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Número de Servicio</Label>
+                    <p className="font-medium">{selectedService.service_number}° servicio</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Técnico</Label>
+                    <p className="font-medium">{selectedService.technician_name || 'No especificado'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Estado del Servicio</Label>
+                    <p className={`font-medium ${selectedService.success === true ? 'text-green-600' : selectedService.success === false ? 'text-red-600' : 'text-gray-600'}`}>
+                      {getSuccessLabel(selectedService.success)}
+                    </p>
+                  </div>
+                  {selectedService.has_confirmed_pregnancy && (
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Estado de Preñez</Label>
+                      <p className="font-medium text-green-600 flex items-center gap-1">
+                        <CheckCircle className="w-4 h-4" />
+                        Preñez Confirmada
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
 
+              {/* Datos específicos de Monta Natural */}
               {selectedService.service_type === 'monta natural' && (
-                <div>
-                  <Label className="text-lg font-semibold">Datos de Monta Natural</Label>
-                  <div className="grid grid-cols-2 gap-4 mt-2">
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h3 className="text-lg font-semibold mb-3 text-blue-900">Datos de Monta Natural</h3>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-muted-foreground">Verraco</Label>
-                      <p className="font-medium">{selectedService.boar_code}</p>
+                      <Label className="text-muted-foreground text-xs">Verraco Utilizado</Label>
+                      <p className="font-medium">{selectedService.boar_code || 'No especificado'}</p>
+                      {selectedService.boar_id && (
+                        <p className="text-sm text-muted-foreground">ID: #{selectedService.boar_id}</p>
+                      )}
                     </div>
                     <div>
-                      <Label className="text-muted-foreground">Duración</Label>
-                      <p className="font-medium">{selectedService.mating_duration ? `${selectedService.mating_duration} min` : 'No registrada'}</p>
+                      <Label className="text-muted-foreground text-xs">Duración de la Monta</Label>
+                      <p className="font-medium">{selectedService.mating_duration_minutes ? `${selectedService.mating_duration_minutes} minutos` : 'No registrada'}</p>
                     </div>
-                    <div>
-                      <Label className="text-muted-foreground">Calidad</Label>
-                      <p className="font-medium">{selectedService.mating_quality || 'No especificada'}</p>
+                    <div className="col-span-2">
+                      <Label className="text-muted-foreground text-xs">Calidad de la Monta</Label>
+                      <p className="font-medium capitalize">{selectedService.mating_quality || 'No especificada'}</p>
                     </div>
                   </div>
                 </div>
               )}
 
+              {/* Datos específicos de Inseminación Artificial */}
               {selectedService.service_type === 'inseminacion artificial' && (
-                <div>
-                  <Label className="text-lg font-semibold">Datos de Inseminación Artificial</Label>
-                  <div className="grid grid-cols-2 gap-4 mt-2">
+                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <h3 className="text-lg font-semibold mb-3 text-purple-900">Datos de Inseminación Artificial</h3>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-muted-foreground">Tipo de IA</Label>
-                      <p className="font-medium">{selectedService.ia_type || 'No especificado'}</p>
+                      <Label className="text-muted-foreground text-xs">Tipo de IA</Label>
+                      <p className="font-medium capitalize">{selectedService.ia_type || 'No especificado'}</p>
                     </div>
                     <div>
-                      <Label className="text-muted-foreground">Código de Dosis</Label>
-                      <p className="font-medium">{selectedService.ia_dose_code || 'No especificado'}</p>
+                      <Label className="text-muted-foreground text-xs">Código de Dosis</Label>
+                      <p className="font-medium">{selectedService.semen_dose_code || 'No especificado'}</p>
                     </div>
                     <div>
-                      <Label className="text-muted-foreground">Volumen</Label>
-                      <p className="font-medium">{selectedService.ia_volume ? `${selectedService.ia_volume} ml` : 'No registrado'}</p>
+                      <Label className="text-muted-foreground text-xs">Volumen de Semen</Label>
+                      <p className="font-medium">{selectedService.semen_volume_ml ? `${selectedService.semen_volume_ml} ml` : 'No registrado'}</p>
                     </div>
                     <div>
-                      <Label className="text-muted-foreground">Concentración</Label>
-                      <p className="font-medium">{selectedService.ia_concentration ? `${selectedService.ia_concentration} mill/ml` : 'No registrada'}</p>
+                      <Label className="text-muted-foreground text-xs">Concentración Espermática</Label>
+                      <p className="font-medium">{selectedService.semen_concentration ? `${selectedService.semen_concentration} millones/ml` : 'No registrada'}</p>
                     </div>
                   </div>
                 </div>
               )}
 
+              {/* Observaciones */}
               {selectedService.notes && (
-                <div>
-                  <Label className="text-muted-foreground">Observaciones</Label>
-                  <p className="font-medium">{selectedService.notes}</p>
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <Label className="text-muted-foreground text-xs">Observaciones</Label>
+                  <p className="font-medium mt-2 whitespace-pre-wrap">{selectedService.notes}</p>
                 </div>
               )}
             </div>

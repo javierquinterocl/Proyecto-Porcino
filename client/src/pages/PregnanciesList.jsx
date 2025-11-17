@@ -539,37 +539,47 @@ export default function PregnanciesList() {
           </DialogHeader>
           {viewDialog.pregnancy && (
             <div className="space-y-6">
-              {/* Información básica */}
+              {/* Información General */}
               <div>
-                <h3 className="text-sm font-semibold mb-3">Información General</h3>
+                <h3 className="text-lg font-semibold mb-3 pb-2 border-b">Información General</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">ID</label>
-                    <p className="text-sm">#{viewDialog.pregnancy.id}</p>
+                    <label className="text-xs font-medium text-muted-foreground">Cerda</label>
+                    <p className="font-medium">{viewDialog.pregnancy.sow_ear_tag}</p>
+                    {viewDialog.pregnancy.sow_alias && (
+                      <p className="text-sm text-muted-foreground">{viewDialog.pregnancy.sow_alias}</p>
+                    )}
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Estado</label>
+                    <label className="text-xs font-medium text-muted-foreground">Estado</label>
                     <div className="mt-1">{getStatusBadge(viewDialog.pregnancy.status)}</div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Cerda</label>
-                    <p className="text-sm">{viewDialog.pregnancy.sow_ear_tag} {viewDialog.pregnancy.sow_alias && `- ${viewDialog.pregnancy.sow_alias}`}</p>
+                    <label className="text-xs font-medium text-muted-foreground">Granja</label>
+                    <p className="font-medium">{viewDialog.pregnancy.farm_name || 'No especificada'}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Granja</label>
-                    <p className="text-sm">{viewDialog.pregnancy.farm_name}</p>
+                    <label className="text-xs font-medium text-muted-foreground">ID de Gestación</label>
+                    <p className="font-medium">#{viewDialog.pregnancy.id}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Fechas */}
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h3 className="text-lg font-semibold mb-3 text-blue-900">Fechas</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground">Fecha de Concepción</label>
+                    <p className="font-medium">{formatDate(viewDialog.pregnancy.conception_date)}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Fecha de Concepción</label>
-                    <p className="text-sm">{formatDate(viewDialog.pregnancy.conception_date)}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Parto Esperado</label>
-                    <p className="text-sm">{formatDate(viewDialog.pregnancy.expected_farrowing_date)}</p>
+                    <label className="text-xs font-medium text-muted-foreground">Parto Esperado</label>
+                    <p className="font-medium">{formatDate(viewDialog.pregnancy.expected_farrowing_date)}</p>
                   </div>
                   {viewDialog.pregnancy.status === 'en curso' && (
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Días hasta parto</label>
+                    <div className="col-span-2">
+                      <label className="text-xs font-medium text-muted-foreground">Días hasta Parto</label>
                       <div className="mt-1">
                         {getDaysUntilBadge(calculateDaysUntilFarrowing(viewDialog.pregnancy.expected_farrowing_date))}
                       </div>
@@ -578,23 +588,23 @@ export default function PregnanciesList() {
                 </div>
               </div>
 
-              {/* Confirmación */}
-              <div>
-                <h3 className="text-sm font-semibold mb-3">Confirmación de Preñez</h3>
+              {/* Confirmación de Preñez */}
+              <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                <h3 className="text-lg font-semibold mb-3 text-purple-900">Confirmación de Preñez</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Estado</label>
+                    <label className="text-xs font-medium text-muted-foreground">Estado de Confirmación</label>
                     <div className="mt-1">{getConfirmedBadge(viewDialog.pregnancy.confirmed)}</div>
                   </div>
                   {viewDialog.pregnancy.confirmed && (
                     <>
                       <div>
-                        <label className="text-sm font-medium text-muted-foreground">Fecha de Confirmación</label>
-                        <p className="text-sm">{formatDate(viewDialog.pregnancy.confirmation_date)}</p>
+                        <label className="text-xs font-medium text-muted-foreground">Fecha de Confirmación</label>
+                        <p className="font-medium">{formatDate(viewDialog.pregnancy.confirmation_date)}</p>
                       </div>
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Método</label>
-                        <p className="text-sm">{viewDialog.pregnancy.confirmation_method}</p>
+                      <div className="col-span-2">
+                        <label className="text-xs font-medium text-muted-foreground">Método de Confirmación</label>
+                        <p className="font-medium capitalize">{viewDialog.pregnancy.confirmation_method}</p>
                       </div>
                     </>
                   )}
@@ -602,29 +612,29 @@ export default function PregnanciesList() {
               </div>
 
               {/* Seguimiento */}
-              <div>
-                <h3 className="text-sm font-semibold mb-3">Seguimiento</h3>
+              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                <h3 className="text-lg font-semibold mb-3 text-green-900">Seguimiento</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Número de Ecografías</label>
-                    <p className="text-sm">{viewDialog.pregnancy.ultrasound_count || 0}</p>
+                    <label className="text-xs font-medium text-muted-foreground">Número de Ecografías</label>
+                    <p className="font-medium">{viewDialog.pregnancy.ultrasound_count || 0}</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Última Ecografía</label>
-                    <p className="text-sm">{formatDate(viewDialog.pregnancy.last_ultrasound_date)}</p>
+                    <label className="text-xs font-medium text-muted-foreground">Última Ecografía</label>
+                    <p className="font-medium">{viewDialog.pregnancy.last_ultrasound_date ? formatDate(viewDialog.pregnancy.last_ultrasound_date) : 'No registrada'}</p>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Lechones Estimados</label>
-                    <p className="text-sm">{viewDialog.pregnancy.estimated_piglets || '-'}</p>
+                  <div className="col-span-2">
+                    <label className="text-xs font-medium text-muted-foreground">Lechones Estimados</label>
+                    <p className="font-medium">{viewDialog.pregnancy.estimated_piglets || 'No estimado'}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Imagen de ecografía */}
+              {/* Imagen de Ecografía */}
               {viewDialog.pregnancy.ultrasound_image_url && (
-                <div>
-                  <h3 className="text-sm font-semibold mb-3">Imagen de Ecografía</h3>
-                  <div className="border rounded-lg p-2">
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <h3 className="text-lg font-semibold mb-3">Imagen de Ecografía</h3>
+                  <div className="border rounded-lg p-2 bg-white">
                     <img 
                       src={viewDialog.pregnancy.ultrasound_image_url} 
                       alt="Ecografía" 
@@ -635,11 +645,11 @@ export default function PregnanciesList() {
                 </div>
               )}
 
-              {/* Notas */}
+              {/* Observaciones */}
               {viewDialog.pregnancy.notes && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Observaciones</label>
-                  <p className="text-sm mt-1">{viewDialog.pregnancy.notes}</p>
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <label className="text-xs font-medium text-muted-foreground">Observaciones</label>
+                  <p className="font-medium mt-2 whitespace-pre-wrap">{viewDialog.pregnancy.notes}</p>
                 </div>
               )}
             </div>
