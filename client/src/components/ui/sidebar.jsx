@@ -20,7 +20,8 @@ import {
   Activity,
   Thermometer,
   Heart,
-  Baby
+  Baby,
+  AlertCircle
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -50,7 +51,6 @@ export function Sidebar() {
   const pathname = location.pathname;
   const [openMenus, setOpenMenus] = useState({
     inventory: false,
-    reports: false,
     sows: false,
     reproductive: false,
   });
@@ -61,13 +61,10 @@ export function Sidebar() {
     if (pathname?.includes("/inventory")) {
       setOpenMenus((prev) => ({ ...prev, inventory: true }))
     }
-    if (pathname?.includes("/reportes")) {
-      setOpenMenus((prev) => ({ ...prev, reports: true }))
-    }
     if (pathname?.includes("/sows")) {
       setOpenMenus((prev) => ({ ...prev, sows: true }))
     }
-    if (pathname?.includes("/critical-periods") || pathname?.includes("/reproductive-parameters") || pathname?.includes("/heats") || pathname?.includes("/services") || pathname?.includes("/pregnancies") || pathname?.includes("/births")) {
+    if (pathname?.includes("/heats") || pathname?.includes("/services") || pathname?.includes("/pregnancies") || pathname?.includes("/births") || pathname?.includes("/abortions")) {
       setOpenMenus((prev) => ({ ...prev, reproductive: true }))
     }
   }, [pathname])
@@ -118,6 +115,14 @@ export function Sidebar() {
             label="Usuarios"
             href="/users"
             isActive={pathname === "/users"}
+            collapsed={collapsed}
+          />
+
+          <NavItem
+            icon={<Calendar className="h-5 w-5" />}
+            label="Calendario"
+            href="/calendar"
+            isActive={pathname === "/calendar"}
             collapsed={collapsed}
           />
 
@@ -185,8 +190,8 @@ export function Sidebar() {
             <NavItem
               icon={<Activity className="h-5 w-5" />}
               label="Datos Reproductivos"
-              href="/critical-periods"
-              isActive={pathname?.includes("/critical-periods") || pathname?.includes("/reproductive-parameters") || pathname?.includes("/heats") || pathname?.includes("/services") || pathname?.includes("/pregnancies") || pathname?.includes("/births")}
+              href="/heats"
+              isActive={pathname?.includes("/heats") || pathname?.includes("/services") || pathname?.includes("/pregnancies") || pathname?.includes("/births") || pathname?.includes("/abortions")}
               collapsed={collapsed}
             />
           ) : (
@@ -238,17 +243,10 @@ export function Sidebar() {
                   collapsed={collapsed}
                 />
                 <NavItem
-                  icon={<Calendar className="h-5 w-5" />}
-                  label="Períodos Críticos"
-                  href="/critical-periods"
-                  isActive={pathname === "/critical-periods"}
-                  collapsed={collapsed}
-                />
-                <NavItem
-                  icon={<BarChart3 className="h-5 w-5" />}
-                  label="Parámetros"
-                  href="/reproductive-parameters"
-                  isActive={pathname === "/reproductive-parameters"}
+                  icon={<AlertCircle className="h-5 w-5" />}
+                  label="Abortos"
+                  href="/abortions"
+                  isActive={pathname?.includes("/abortions")}
                   collapsed={collapsed}
                 />
               </CollapsibleContent>
@@ -309,55 +307,13 @@ export function Sidebar() {
             </Collapsible>
           )}
 
-          {collapsed ? (
-            <NavItem
-              icon={<BarChart3 className="h-5 w-5" />}
-              label="Reportes"
-              href="/reportes"
-              isActive={pathname === "/reportes"}
-              collapsed={collapsed}
-            />
-          ) : (
-            <Collapsible open={openMenus.reports} onOpenChange={() => toggleMenu("reports")}>
-              <CollapsibleTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    "w-full justify-start text-white hover:bg-[#2a4a04] hover:text-white",
-                    openMenus.reports && "bg-[#2a4a04]",
-                  )}
-                >
-                  <BarChart3 className="mr-2 h-5 w-5" />
-                  <span>Reportes</span>
-                  {openMenus.reports ? (
-                    <ChevronDown className="ml-auto h-5 w-5" />
-                  ) : (
-                    <ChevronRight className="ml-auto h-5 w-5" />
-                  )}
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pl-6 space-y-1">
-                <NavItem
-                  icon={<FileText className="h-5 w-5" />}
-                  label="Estadísticas"
-                  href="/reportes?tab=statistics"
-                  isActive={
-                    pathname === "/reportes" && new URLSearchParams(window.location.search).get("tab") === "statistics"
-                  }
-                  collapsed={collapsed}
-                />
-                <NavItem
-                  icon={<FileText className="h-5 w-5" />}
-                  label="Gráficas"
-                  href="/reportes?tab=charts"
-                  isActive={
-                    pathname === "/reportes" && new URLSearchParams(window.location.search).get("tab") === "charts"
-                  }
-                  collapsed={collapsed}
-                />
-              </CollapsibleContent>
-            </Collapsible>
-          )}
+          <NavItem
+            icon={<BarChart3 className="h-5 w-5" />}
+            label="Reportes"
+            href="/reportes"
+            isActive={pathname === "/reportes"}
+            collapsed={collapsed}
+          />
         </nav>
 
         <div className="p-4 border-t border-[#2a4a04] flex-shrink-0">

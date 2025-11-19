@@ -1435,3 +1435,431 @@ export const exportAllBoarsToExcel = (boars) => {
   }
 };
 
+/**
+ * Exportar un lechón individual a PDF
+ */
+export const exportPigletToPDF = (piglet) => {
+  try {
+    console.log('Iniciando exportación PDF de lechón:', piglet);
+    
+    // Obtener información del usuario
+    let userName = 'Usuario';
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || 'Usuario';
+      }
+    } catch (e) {
+      console.log('No se pudo obtener el usuario:', e);
+    }
+    
+    const doc = new jsPDF();
+    
+    // Configuración de colores
+    const primaryColor = [236, 72, 153]; // Rosa para lechones
+    
+    // Encabezado
+    doc.setFillColor(...primaryColor);
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont(undefined, 'bold');
+    doc.text('FICHA DE LECHÓN', 105, 15, { align: 'center' });
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'normal');
+    doc.text(`${piglet.ear_tag || piglet.temporary_id || `ID: ${piglet.id}`}`, 105, 25, { align: 'center' });
+    
+    // Información del reporte
+    doc.setFontSize(9);
+    const currentDate = new Date().toLocaleDateString('es-ES', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    doc.text(`Generado: ${currentDate} | Por: ${userName}`, 105, 35, { align: 'center' });
+    
+    // Resetear color de texto
+    doc.setTextColor(0, 0, 0);
+    let yPosition = 50;
+  
+    // Sección 1: Identificación
+    doc.setFillColor(240, 240, 240);
+    doc.rect(10, yPosition, 190, 8, 'F');
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text('IDENTIFICACIÓN', 15, yPosition + 6);
+    yPosition += 12;
+    
+    autoTable(doc, {
+      startY: yPosition,
+      head: [['Campo', 'Valor']],
+      body: [
+        ['Arete', piglet.ear_tag || 'Sin arete'],
+        ['ID Temporal', piglet.temporary_id || 'N/A'],
+        ['Orden de Nacimiento', piglet.birth_order || 'N/A'],
+        ['Sexo', piglet.sex === 'macho' ? '♂ Macho' : piglet.sex === 'hembra' ? '♀ Hembra' : 'Indefinido'],
+      ],
+      theme: 'striped',
+      headStyles: { fillColor: primaryColor },
+      margin: { left: 15, right: 15 },
+    });
+    
+    yPosition = doc.lastAutoTable.finalY + 10;
+    
+    // Sección 2: Datos al Nacimiento
+    doc.setFillColor(240, 240, 240);
+    doc.rect(10, yPosition, 190, 8, 'F');
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text('DATOS AL NACIMIENTO', 15, yPosition + 6);
+    yPosition += 12;
+    
+    autoTable(doc, {
+      startY: yPosition,
+      head: [['Campo', 'Valor']],
+      body: [
+        ['Fecha de Nacimiento', formatDate(piglet.birth_date)],
+        ['Peso al Nacer', piglet.birth_weight ? `${piglet.birth_weight} kg` : 'N/A'],
+        ['Estado al Nacer', piglet.birth_status || 'N/A'],
+        ['Estado Actual', piglet.current_status || 'N/A'],
+      ],
+      theme: 'striped',
+      headStyles: { fillColor: primaryColor },
+      margin: { left: 15, right: 15 },
+    });
+    
+    yPosition = doc.lastAutoTable.finalY + 10;
+    
+    // Sección 3: Padres
+    doc.setFillColor(240, 240, 240);
+    doc.rect(10, yPosition, 190, 8, 'F');
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text('INFORMACIÓN DE PADRES', 15, yPosition + 6);
+    yPosition += 12;
+    
+    autoTable(doc, {
+      startY: yPosition,
+      head: [['Campo', 'Valor']],
+      body: [
+        ['Madre (Cerda)', piglet.sow_ear_tag ? `${piglet.sow_ear_tag}${piglet.sow_alias ? ` - ${piglet.sow_alias}` : ''}` : 'N/A'],
+        ['Padre (Verraco)', piglet.sire_ear_tag ? `${piglet.sire_ear_tag}${piglet.sire_name ? ` - ${piglet.sire_name}` : ''}` : 'N/A'],
+        ['Cerda Adoptiva', piglet.adoptive_sow_ear_tag ? `${piglet.adoptive_sow_ear_tag}${piglet.adoptive_sow_alias ? ` - ${piglet.adoptive_sow_alias}` : ''}` : 'No adoptado'],
+        ['Fecha de Adopción', piglet.adoption_date ? formatDate(piglet.adoption_date) : 'N/A'],
+        ['Motivo de Adopción', piglet.adoption_reason || 'N/A'],
+      ],
+      theme: 'striped',
+      headStyles: { fillColor: primaryColor },
+      margin: { left: 15, right: 15 },
+    });
+    
+    yPosition = doc.lastAutoTable.finalY + 10;
+    
+    // Sección 4: Destete (si aplica)
+    if (piglet.weaning_date || piglet.weaning_weight) {
+      doc.setFillColor(240, 240, 240);
+      doc.rect(10, yPosition, 190, 8, 'F');
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text('INFORMACIÓN DE DESTETE', 15, yPosition + 6);
+      yPosition += 12;
+      
+      autoTable(doc, {
+        startY: yPosition,
+        head: [['Campo', 'Valor']],
+        body: [
+          ['Fecha de Destete', formatDate(piglet.weaning_date)],
+          ['Peso al Destete', piglet.weaning_weight ? `${piglet.weaning_weight} kg` : 'N/A'],
+          ['Edad al Destete', piglet.weaning_age_days ? `${piglet.weaning_age_days} días` : 'N/A'],
+        ],
+        theme: 'striped',
+        headStyles: { fillColor: primaryColor },
+        margin: { left: 15, right: 15 },
+      });
+      
+      yPosition = doc.lastAutoTable.finalY + 10;
+    }
+    
+    // Sección 5: Observaciones
+    if (piglet.notes || piglet.special_care) {
+      doc.setFillColor(240, 240, 240);
+      doc.rect(10, yPosition, 190, 8, 'F');
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text('OBSERVACIONES', 15, yPosition + 6);
+      yPosition += 12;
+      
+      const observations = [];
+      if (piglet.special_care) {
+        observations.push(['Cuidados Especiales', 'Sí, requiere atención especial']);
+      }
+      if (piglet.notes) {
+        observations.push(['Notas', piglet.notes]);
+      }
+      
+      autoTable(doc, {
+        startY: yPosition,
+        head: [['Campo', 'Valor']],
+        body: observations,
+        theme: 'striped',
+        headStyles: { fillColor: primaryColor },
+        margin: { left: 15, right: 15 },
+      });
+    }
+    
+    // Pie de página
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text(`Sistema de Gestión Porcina - Página ${i} de ${pageCount}`, 105, 285, { align: 'center' });
+    }
+    
+    // Guardar
+    const fileName = `lechon_${piglet.ear_tag || piglet.temporary_id || piglet.id}_${new Date().getTime()}.pdf`;
+    doc.save(fileName);
+    console.log('✅ PDF generado:', fileName);
+  } catch (error) {
+    console.error('❌ Error al exportar lechón a PDF:', error);
+    throw error;
+  }
+};
+
+/**
+ * Exportar todos los lechones a PDF
+ */
+export const exportAllPigletsToPDF = (piglets) => {
+  try {
+    console.log('Iniciando exportación PDF de todos los lechones:', piglets.length);
+    
+    // Obtener información del usuario
+    let userName = 'Usuario';
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || 'Usuario';
+      }
+    } catch (e) {
+      console.log('No se pudo obtener el usuario:', e);
+    }
+    
+    const doc = new jsPDF();
+    const primaryColor = [236, 72, 153];
+    
+    // Encabezado
+    doc.setFillColor(...primaryColor);
+    doc.rect(0, 0, 210, 35, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont(undefined, 'bold');
+    doc.text('LISTADO DE LECHONES', 105, 15, { align: 'center' });
+    
+    doc.setFontSize(9);
+    const currentDate = new Date().toLocaleDateString('es-ES', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    doc.text(`Generado: ${currentDate} | Por: ${userName}`, 105, 25, { align: 'center' });
+    
+    // Resetear color de texto
+    doc.setTextColor(0, 0, 0);
+    
+    // Tabla de lechones
+    const tableData = piglets.map(piglet => [
+      piglet.ear_tag || piglet.temporary_id || `ID: ${piglet.id}`,
+      piglet.sex === 'macho' ? '♂ M' : piglet.sex === 'hembra' ? '♀ H' : 'I',
+      piglet.sow_ear_tag || 'N/A',
+      piglet.sire_ear_tag || 'N/A',
+      formatDate(piglet.birth_date),
+      piglet.birth_weight ? `${piglet.birth_weight}` : '-',
+      piglet.birth_status || '-',
+      piglet.current_status || '-',
+    ]);
+    
+    autoTable(doc, {
+      startY: 45,
+      head: [['Identificación', 'Sexo', 'Madre', 'Padre', 'Nac.', 'Peso', 'Est. Nac.', 'Est. Actual']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { 
+        fillColor: primaryColor,
+        fontSize: 9,
+      },
+      bodyStyles: {
+        fontSize: 8,
+      },
+      columnStyles: {
+        0: { cellWidth: 25 },
+        1: { cellWidth: 12 },
+        2: { cellWidth: 22 },
+        3: { cellWidth: 22 },
+        4: { cellWidth: 25 },
+        5: { cellWidth: 15 },
+        6: { cellWidth: 20 },
+        7: { cellWidth: 20 },
+      },
+      margin: { left: 10, right: 10 },
+    });
+    
+    // Resumen
+    const yPosition = doc.lastAutoTable.finalY + 10;
+    doc.setFillColor(240, 240, 240);
+    doc.rect(10, yPosition, 190, 8, 'F');
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    doc.text('RESUMEN', 15, yPosition + 6);
+    
+    const totalLechones = piglets.length;
+    const machos = piglets.filter(p => p.sex === 'macho').length;
+    const hembras = piglets.filter(p => p.sex === 'hembra').length;
+    const vivos = piglets.filter(p => p.birth_status === 'vivo').length;
+    const lactantes = piglets.filter(p => p.current_status === 'lactante').length;
+    const destetados = piglets.filter(p => p.current_status === 'destetado').length;
+    
+    autoTable(doc, {
+      startY: yPosition + 10,
+      head: [['Estadística', 'Cantidad']],
+      body: [
+        ['Total de Lechones', totalLechones],
+        ['Machos', machos],
+        ['Hembras', hembras],
+        ['Nacidos Vivos', vivos],
+        ['Lactantes', lactantes],
+        ['Destetados', destetados],
+      ],
+      theme: 'plain',
+      headStyles: { fillColor: primaryColor },
+      margin: { left: 15, right: 15 },
+    });
+    
+    // Pie de página
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text(`Sistema de Gestión Porcina - Página ${i} de ${pageCount}`, 105, 285, { align: 'center' });
+    }
+    
+    // Guardar
+    const fileName = `lechones_listado_${new Date().getTime()}.pdf`;
+    doc.save(fileName);
+    console.log('✅ PDF generado:', fileName);
+  } catch (error) {
+    console.error('❌ Error al exportar lechones a PDF:', error);
+    throw error;
+  }
+};
+
+/**
+ * Exportar un lechón individual a Excel
+ */
+export const exportPigletToExcel = (piglet) => {
+  try {
+    console.log('Iniciando exportación Excel de lechón:', piglet);
+    
+    const wb = XLSX.utils.book_new();
+    
+    // Hoja de datos básicos
+    const basicData = [
+      ['FICHA DE LECHÓN'],
+      [],
+      ['IDENTIFICACIÓN'],
+      ['Arete', piglet.ear_tag || 'Sin arete'],
+      ['ID Temporal', piglet.temporary_id || 'N/A'],
+      ['Orden de Nacimiento', piglet.birth_order || 'N/A'],
+      ['Sexo', piglet.sex === 'macho' ? '♂ Macho' : piglet.sex === 'hembra' ? '♀ Hembra' : 'Indefinido'],
+      [],
+      ['DATOS AL NACIMIENTO'],
+      ['Fecha de Nacimiento', formatDate(piglet.birth_date)],
+      ['Peso al Nacer (kg)', piglet.birth_weight || 'N/A'],
+      ['Estado al Nacer', piglet.birth_status || 'N/A'],
+      ['Estado Actual', piglet.current_status || 'N/A'],
+      [],
+      ['INFORMACIÓN DE PADRES'],
+      ['Madre (Cerda)', piglet.sow_ear_tag ? `${piglet.sow_ear_tag}${piglet.sow_alias ? ` - ${piglet.sow_alias}` : ''}` : 'N/A'],
+      ['Padre (Verraco)', piglet.sire_ear_tag ? `${piglet.sire_ear_tag}${piglet.sire_name ? ` - ${piglet.sire_name}` : ''}` : 'N/A'],
+      ['Cerda Adoptiva', piglet.adoptive_sow_ear_tag || 'No adoptado'],
+      ['Fecha de Adopción', piglet.adoption_date ? formatDate(piglet.adoption_date) : 'N/A'],
+      ['Motivo de Adopción', piglet.adoption_reason || 'N/A'],
+      [],
+      ['DESTETE'],
+      ['Fecha de Destete', piglet.weaning_date ? formatDate(piglet.weaning_date) : 'N/A'],
+      ['Peso al Destete (kg)', piglet.weaning_weight || 'N/A'],
+      ['Edad al Destete (días)', piglet.weaning_age_days || 'N/A'],
+      [],
+      ['OBSERVACIONES'],
+      ['Cuidados Especiales', piglet.special_care ? 'Sí' : 'No'],
+      ['Notas', piglet.notes || 'Sin observaciones'],
+    ];
+    
+    const ws = XLSX.utils.aoa_to_sheet(basicData);
+    ws['!cols'] = [{ wch: 25 }, { wch: 40 }];
+    XLSX.utils.book_append_sheet(wb, ws, 'Lechón');
+    
+    const fileName = `lechon_${piglet.ear_tag || piglet.temporary_id || piglet.id}_${new Date().getTime()}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    console.log('✅ Exportación a Excel completada');
+  } catch (error) {
+    console.error('❌ Error al exportar lechón a Excel:', error);
+    throw error;
+  }
+};
+
+/**
+ * Exportar todos los lechones a Excel
+ */
+export const exportAllPigletsToExcel = (piglets) => {
+  try {
+    console.log('Iniciando exportación Excel de todos los lechones:', piglets.length);
+    
+    const wb = XLSX.utils.book_new();
+    
+    // Preparar datos para la tabla
+    const tableData = piglets.map(piglet => ({
+      'Identificación': piglet.ear_tag || piglet.temporary_id || `ID: ${piglet.id}`,
+      'Sexo': piglet.sex === 'macho' ? 'Macho' : piglet.sex === 'hembra' ? 'Hembra' : 'Indefinido',
+      'Madre': piglet.sow_ear_tag || 'N/A',
+      'Padre': piglet.sire_ear_tag || 'N/A',
+      'Fecha Nacimiento': formatDate(piglet.birth_date),
+      'Peso Nacer (kg)': piglet.birth_weight || '-',
+      'Estado Nacer': piglet.birth_status || '-',
+      'Estado Actual': piglet.current_status || '-',
+      'Cerda Adoptiva': piglet.adoptive_sow_ear_tag || '-',
+      'Peso Destete (kg)': piglet.weaning_weight || '-',
+      'Edad Destete (días)': piglet.weaning_age_days || '-',
+      'Cuidados Especiales': piglet.special_care ? 'Sí' : 'No',
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(tableData);
+    ws['!cols'] = [
+      { wch: 15 }, 
+      { wch: 12 }, 
+      { wch: 15 }, 
+      { wch: 15 }, 
+      { wch: 18 }, 
+      { wch: 15 }, 
+      { wch: 15 }, 
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 18 },
+      { wch: 18 }
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, 'Lechones');
+    XLSX.writeFile(wb, `lechones_${new Date().getTime()}.xlsx`);
+    console.log('✅ Exportación a Excel completada');
+  } catch (error) {
+    console.error('❌ Error al exportar lechones a Excel:', error);
+    throw error;
+  }
+};
+

@@ -350,8 +350,93 @@ export const boarService = {
 // ==================== PIG SERVICE (Legacy - mantener compatibilidad) ====================
 
 export const pigService = {
+  // Métodos de sows (para cerdas) - spread primero
   ...sowService,
-  ...boarService
+  
+  // Métodos de boars (para verracos) - spread después
+  ...boarService,
+  
+  // Métodos personalizados que sobrescriben o extienden los anteriores
+  getAllPigs: async (filters = {}) => {
+    try {
+      const [sows, boars] = await Promise.all([
+        sowService.getAllSows(filters),
+        boarService.getAllBoars(filters)
+      ]);
+      // Combinar y normalizar para compatibilidad con el código existente
+      const allPigs = [
+        ...sows.map(sow => ({
+          ...sow,
+          gender: 'FEMALE',
+          pigType: 'REPRODUCTORA',
+          pigId: sow.ear_tag || sow.id,
+          name: sow.alias || sow.ear_tag,
+          id: sow.id
+        })),
+        ...boars.map(boar => ({
+          ...boar,
+          gender: 'MALE',
+          pigType: 'REPRODUCTOR',
+          pigId: boar.ear_tag || boar.id,
+          name: boar.name || boar.ear_tag,
+          id: boar.id
+        }))
+      ];
+      return allPigs;
+    } catch (error) {
+      console.error('Error obteniendo todos los cerdos:', error);
+      throw error;
+    }
+  },
+  
+  getPigById: async (id) => {
+    try {
+      // Intentar primero como cerda
+      try {
+        const sow = await sowService.getSowById(id);
+        return {
+          ...sow,
+          gender: 'FEMALE',
+          pigType: 'REPRODUCTORA',
+          pigId: sow.ear_tag || sow.id,
+          name: sow.alias || sow.ear_tag,
+          id: sow.id
+        };
+      } catch (sowError) {
+        // Si no es cerda, intentar como verraco
+        const boar = await boarService.getBoarById(id);
+        return {
+          ...boar,
+          gender: 'MALE',
+          pigType: 'REPRODUCTOR',
+          pigId: boar.ear_tag || boar.id,
+          name: boar.name || boar.ear_tag,
+          id: boar.id
+        };
+      }
+    } catch (error) {
+      console.error('Error obteniendo cerdo por ID:', error);
+      throw error;
+    }
+  },
+  
+  // Métodos adicionales para compatibilidad con código existente
+  addReproductiveRecord: async (sowId, recordData) => {
+    // Este método debería crear un registro reproductivo
+    // Por ahora, redirigimos a un endpoint de gestación o servicio
+    const response = await api.post(`/sows/${sowId}/reproductive-records`, recordData);
+    return response.data;
+  },
+  
+  updateReproductiveRecord: async (sowId, recordId, recordData) => {
+    const response = await api.put(`/sows/${sowId}/reproductive-records/${recordId}`, recordData);
+    return response.data;
+  },
+  
+  deleteReproductiveRecord: async (sowId, recordId) => {
+    const response = await api.delete(`/sows/${sowId}/reproductive-records/${recordId}`);
+    return response.data;
+  }
 };
 
 // ==================== HEAT SERVICE ====================
@@ -612,8 +697,76 @@ export const productOutputService = {
   // Métodos relacionados con salidas de productos
 };
 
+// ==================== ABORTION SERVICE ====================
+
+export const abortionService = {
+  // Obtener todos los abortos
+  getAllAbortions: async (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key]) params.append(key, filters[key]);
+    });
+    const queryString = params.toString();
+    const url = queryString ? `/abortions?${queryString}` : '/abortions';
+    const response = await api.get(url);
+    return response.data.data || [];
+  },
+  
+  // Obtener aborto por ID
+  getAbortionById: async (id) => {
+    const response = await api.get(`/abortions/${id}`);
+    return response.data.data;
+  },
+  
+  // Obtener abortos de una cerda
+  getAbortionsBySowId: async (sowId) => {
+    const response = await api.get(`/abortions/sow/${sowId}`);
+    return response.data.data || [];
+  },
+  
+  // Crear nuevo aborto
+  createAbortion: async (abortionData) => {
+    const response = await api.post('/abortions', abortionData);
+    return response.data;
+  },
+  
+  // Actualizar aborto
+  updateAbortion: async (id, abortionData) => {
+    const response = await api.put(`/abortions/${id}`, abortionData);
+    return response.data.data;
+  },
+  
+  // Eliminar aborto
+  deleteAbortion: async (id) => {
+    const response = await api.delete(`/abortions/${id}`);
+    return response.data;
+  }
+};
+
 export const reproductiveDataService = {
-  // Métodos relacionados con datos reproductivos
+  // Registrar detección de celo
+  addHeatDetection: async (sowId, heatData) => {
+    const response = await api.post(`/sows/${sowId}/heat-detections`, heatData);
+    return response.data;
+  },
+  
+  // Registrar monitoreo de gestación
+  addGestationMonitoring: async (sowId, monitoringData) => {
+    const response = await api.post(`/sows/${sowId}/gestation-monitoring`, monitoringData);
+    return response.data;
+  },
+  
+  // Agregar detalles del parto
+  addFarrowingDetails: async (sowId, recordId, farrowingData) => {
+    const response = await api.post(`/sows/${sowId}/reproductive-records/${recordId}/farrowing-details`, farrowingData);
+    return response.data;
+  },
+  
+  // Registrar aborto
+  addAbortion: async (sowId, abortionData) => {
+    const response = await api.post(`/sows/${sowId}/abortions`, abortionData);
+    return response.data;
+  }
 };
 
 // ==================== BIRTH SERVICE ====================
@@ -694,6 +847,108 @@ export const birthService = {
   // Eliminar parto
   deleteBirth: async (id) => {
     const response = await api.delete(`/births/${id}`);
+    return response.data;
+  }
+};
+
+// Servicio de Lechones
+export const pigletService = {
+  getAllPiglets: async (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key]) params.append(key, filters[key]);
+    });
+    const queryString = params.toString();
+    const url = queryString ? `/piglets?${queryString}` : '/piglets';
+    const response = await api.get(url);
+    return response.data.data || [];
+  },
+  getPigletById: async (id) => {
+    const response = await api.get(`/piglets/${id}`);
+    return response.data.data;
+  },
+  getPigletByEarTag: async (earTag) => {
+    const response = await api.get(`/piglets/ear-tag/${earTag}`);
+    return response.data.data;
+  },
+  getPigletsByBirthId: async (birthId) => {
+    const response = await api.get(`/piglets/birth/${birthId}`);
+    return response.data.data || [];
+  },
+  getPigletsBySowId: async (sowId) => {
+    const response = await api.get(`/piglets/sow/${sowId}`);
+    return response.data.data || [];
+  },
+  getPigletsReadyForWeaning: async (minDays = 21) => {
+    const response = await api.get(`/piglets/ready-weaning?min_days=${minDays}`);
+    return response.data.data || [];
+  },
+  getStats: async (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key]) params.append(key, filters[key]);
+    });
+    const queryString = params.toString();
+    const url = queryString ? `/piglets/stats?${queryString}` : '/piglets/stats';
+    const response = await api.get(url);
+    return response.data.data;
+  },
+  createPiglet: async (pigletData) => {
+    const response = await api.post('/piglets', pigletData);
+    return response.data;
+  },
+  updatePiglet: async (id, pigletData) => {
+    const response = await api.put(`/piglets/${id}`, pigletData);
+    return response.data.data;
+  },
+  partialUpdatePiglet: async (id, pigletData) => {
+    const response = await api.patch(`/piglets/${id}`, pigletData);
+    return response.data.data;
+  },
+  softDeletePiglet: async (id, reason = 'vendido') => {
+    const response = await api.delete(`/piglets/${id}/soft`, { data: { reason } });
+    return response.data;
+  },
+  deletePiglet: async (id) => {
+    const response = await api.delete(`/piglets/${id}`);
+    return response.data;
+  }
+};
+
+// Servicio de Eventos del Calendario
+export const calendarEventService = {
+  getAllEvents: async (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key]) params.append(key, filters[key]);
+    });
+    const queryString = params.toString();
+    const url = queryString ? `/calendar-events?${queryString}` : '/calendar-events';
+    const response = await api.get(url);
+    return response.data.data || [];
+  },
+  getEventById: async (id) => {
+    const response = await api.get(`/calendar-events/${id}`);
+    return response.data.data;
+  },
+  getEventsByMonth: async (year, month) => {
+    const response = await api.get(`/calendar-events/month/${year}/${month}`);
+    return response.data.data || [];
+  },
+  getUpcomingEvents: async (days = 7) => {
+    const response = await api.get(`/calendar-events/upcoming?days=${days}`);
+    return response.data.data || [];
+  },
+  createEvent: async (eventData) => {
+    const response = await api.post('/calendar-events', eventData);
+    return response.data;
+  },
+  updateEvent: async (id, eventData) => {
+    const response = await api.put(`/calendar-events/${id}`, eventData);
+    return response.data.data;
+  },
+  deleteEvent: async (id) => {
+    const response = await api.delete(`/calendar-events/${id}`);
     return response.data;
   }
 };

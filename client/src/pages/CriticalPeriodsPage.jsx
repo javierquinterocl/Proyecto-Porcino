@@ -35,6 +35,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Calendar,
   Plus,
@@ -43,7 +44,6 @@ import {
   Thermometer,
   Droplet,
   Baby,
-  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -59,21 +59,6 @@ const DETECTION_METHODS = [
   { value: "OTRO", label: "Otro" },
 ];
 
-const ABORTION_CAUSES = [
-  { value: "INFECCIOSA_PRRS", label: "Infecciosa - PRRS" },
-  { value: "INFECCIOSA_PARVOVIRUS", label: "Infecciosa - Parvovirus" },
-  { value: "INFECCIOSA_LEPTOSPIRA", label: "Infecciosa - Leptospira" },
-  { value: "NUTRICIONAL_MICOTOXINAS", label: "Nutricional - Micotoxinas" },
-  { value: "ESTRES_TERMICO", label: "Estrés térmico" },
-  { value: "TRAUMA", label: "Trauma" },
-  { value: "DESCONOCIDA", label: "Desconocida" },
-];
-
-const FETUS_STATES = [
-  { value: "FRESCOS", label: "Frescos" },
-  { value: "AUTOLISIS", label: "Autolisis" },
-  { value: "MOMIFICADOS", label: "Momificados" },
-];
 
 const formatDate = (value) => {
   if (!value) return "-";
@@ -132,18 +117,6 @@ export default function CriticalPeriodsPage() {
     medications: "",
   });
 
-  // Abortion
-  const [isAbortionDialogOpen, setIsAbortionDialogOpen] = useState(false);
-  const [abortionForm, setAbortionForm] = useState({
-    date: "",
-    gestationDays: "",
-    fetusesExpelled: "",
-    fetusState: "",
-    previousSymptoms: "",
-    probableCause: "DESCONOCIDA",
-    correctiveActions: "",
-    followUp: "",
-  });
 
   const loadSows = useCallback(async () => {
     try {
@@ -198,6 +171,7 @@ export default function CriticalPeriodsPage() {
     },
     [toast]
   );
+
 
   useEffect(() => {
     loadSows();
@@ -323,43 +297,6 @@ export default function CriticalPeriodsPage() {
     }
   };
 
-  const handleAbortionSubmit = async () => {
-    if (!selectedSow || !abortionForm.date) {
-      toast({
-        title: "Campos obligatorios",
-        description: "La fecha es obligatoria.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      await reproductiveDataService.addAbortion(selectedSow.id, abortionForm);
-      toast({
-        title: "Registro guardado",
-        description: "Aborto registrado correctamente.",
-      });
-      setIsAbortionDialogOpen(false);
-      setAbortionForm({
-        date: "",
-        gestationDays: "",
-        fetusesExpelled: "",
-        fetusState: "",
-        previousSymptoms: "",
-        probableCause: "DESCONOCIDA",
-        correctiveActions: "",
-        followUp: "",
-      });
-      await refreshSow(selectedSow.id);
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Error",
-        description: error?.message || "No fue posible guardar el registro.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const orderedSows = [...sows].sort((a, b) => a.pigId.localeCompare(b.pigId, "es"));
 
@@ -370,7 +307,7 @@ export default function CriticalPeriodsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Períodos Críticos</h1>
           <p className="text-sm text-gray-600 mt-1">
-            Registra detección de celo, monitoreo de gestación, detalles del parto y abortos.
+            Registra detección de celo, monitoreo de gestación y detalles del parto.
           </p>
         </div>
       </div>
@@ -419,7 +356,7 @@ export default function CriticalPeriodsPage() {
               <div>
                 <CardTitle>Registro de Períodos Críticos</CardTitle>
                 <CardDescription>
-                  Registra detección de celo, monitoreo de gestación, detalles del parto y abortos.
+                  Registra detección de celo, monitoreo de gestación y detalles del parto.
                 </CardDescription>
               </div>
               <Button
@@ -468,17 +405,6 @@ export default function CriticalPeriodsPage() {
                 >
                   <Calendar className="h-4 w-4 mr-2" />
                   Parto
-                </Button>
-                <Button
-                  variant={activeTab === "abortion" ? "default" : "ghost"}
-                  onClick={() => setActiveTab("abortion")}
-                  size="sm"
-                  className={cn(
-                    activeTab === "abortion" && "bg-[#6b7c45] text-white hover:bg-[#5a6b35]"
-                  )}
-                >
-                  <AlertCircle className="h-4 w-4 mr-2" />
-                  Abortos
                 </Button>
               </div>
 
@@ -637,48 +563,6 @@ export default function CriticalPeriodsPage() {
                 </div>
               )}
 
-              {activeTab === "abortion" && (
-                <div className="space-y-4">
-                <div className="flex justify-end">
-                  <Button onClick={() => setIsAbortionDialogOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" /> Registrar aborto
-                  </Button>
-                </div>
-                {selectedSow.criticalPeriods?.abortions?.length ? (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Fecha</TableHead>
-                          <TableHead>Días gestación</TableHead>
-                          <TableHead>Fetos expulsados</TableHead>
-                          <TableHead>Estado fetos</TableHead>
-                          <TableHead>Causa probable</TableHead>
-                          <TableHead>Acciones correctivas</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {selectedSow.criticalPeriods.abortions.map((abortion) => (
-                          <TableRow key={abortion.id}>
-                            <TableCell>{formatDate(abortion.date)}</TableCell>
-                            <TableCell>{abortion.gestationDays || "-"}</TableCell>
-                            <TableCell>{abortion.fetusesExpelled || "-"}</TableCell>
-                            <TableCell>{FETUS_STATES.find(f => f.value === abortion.fetusState)?.label || abortion.fetusState || "-"}</TableCell>
-                            <TableCell>{ABORTION_CAUSES.find(c => c.value === abortion.probableCause)?.label || abortion.probableCause}</TableCell>
-                            <TableCell>{abortion.correctiveActions || "-"}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-gray-300 py-12 text-center text-sm text-gray-500">
-                    <Calendar className="mb-3 h-6 w-6" />
-                    No hay registros de abortos.
-                  </div>
-                )}
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -922,122 +806,6 @@ export default function CriticalPeriodsPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isAbortionDialogOpen} onOpenChange={setIsAbortionDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Registrar aborto</DialogTitle>
-            <DialogDescription>Registro detallado del aborto ocurrido.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="abort-date">Fecha *</Label>
-                <Input
-                  id="abort-date"
-                  type="date"
-                  value={abortionForm.date}
-                  onChange={(e) => setAbortionForm((prev) => ({ ...prev, date: e.target.value }))}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="abort-days">Días de gestación</Label>
-                <Input
-                  id="abort-days"
-                  type="number"
-                  value={abortionForm.gestationDays}
-                  onChange={(e) => setAbortionForm((prev) => ({ ...prev, gestationDays: e.target.value }))}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="abort-fetuses">Número de fetos expulsados</Label>
-                <Input
-                  id="abort-fetuses"
-                  type="number"
-                  value={abortionForm.fetusesExpelled}
-                  onChange={(e) => setAbortionForm((prev) => ({ ...prev, fetusesExpelled: e.target.value }))}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="abort-state">Estado de los fetos</Label>
-                <Select
-                  value={abortionForm.fetusState}
-                  onValueChange={(value) => setAbortionForm((prev) => ({ ...prev, fetusState: value }))}
-                >
-                  <SelectTrigger id="abort-state">
-                    <SelectValue placeholder="Selecciona..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FETUS_STATES.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="abort-symptoms">Síntomas previos de la cerda</Label>
-              <textarea
-                id="abort-symptoms"
-                value={abortionForm.previousSymptoms}
-                onChange={(e) => setAbortionForm((prev) => ({ ...prev, previousSymptoms: e.target.value }))}
-                className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b7c45]"
-                rows={2}
-                placeholder="Síntomas observados antes del aborto"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="abort-cause">Causa probable</Label>
-              <Select
-                value={abortionForm.probableCause}
-                onValueChange={(value) => setAbortionForm((prev) => ({ ...prev, probableCause: value }))}
-              >
-                <SelectTrigger id="abort-cause">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ABORTION_CAUSES.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="abort-actions">Acciones correctivas tomadas</Label>
-              <textarea
-                id="abort-actions"
-                value={abortionForm.correctiveActions}
-                onChange={(e) => setAbortionForm((prev) => ({ ...prev, correctiveActions: e.target.value }))}
-                className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b7c45]"
-                rows={2}
-                placeholder="Tratamientos, vacunas, cambios en manejo, etc."
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="abort-followup">Seguimiento posterior</Label>
-              <textarea
-                id="abort-followup"
-                value={abortionForm.followUp}
-                onChange={(e) => setAbortionForm((prev) => ({ ...prev, followUp: e.target.value }))}
-                className="mt-1 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6b7c45]"
-                rows={2}
-                placeholder="Estado posterior de la cerda, próximos pasos"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAbortionDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleAbortionSubmit}>Guardar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

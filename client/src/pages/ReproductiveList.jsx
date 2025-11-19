@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Search, Eye, Edit2, Trash2, Plus, PiggyBank, Baby, Upload, X, Image as ImageIcon, FileText, FileSpreadsheet, Download, MoreVertical } from "lucide-react";
-import { pigService } from "@/services/api";
+import { pigService, pigletService } from "@/services/api";
 import { useToast } from "@/components/ui/use-toast";
 import { 
   exportSowToPDF, 
@@ -21,7 +21,11 @@ import {
   exportBoarToPDF,
   exportAllBoarsToPDF,
   exportBoarToExcel,
-  exportAllBoarsToExcel
+  exportAllBoarsToExcel,
+  exportPigletToPDF,
+  exportAllPigletsToPDF,
+  exportPigletToExcel,
+  exportAllPigletsToExcel
 } from "@/utils/exportUtils";
 
 export default function ReproductiveList() {
@@ -31,6 +35,7 @@ export default function ReproductiveList() {
   const [activeTab, setActiveTab] = useState("cerdas");
   const [sows, setSows] = useState([]);
   const [boars, setBoars] = useState([]);
+  const [piglets, setPiglets] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState("");
   
@@ -74,13 +79,33 @@ export default function ReproductiveList() {
     }
   }, [toast]);
 
+  // Cargar lechones
+  const loadPiglets = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const data = await pigletService.getAllPiglets();
+      setPiglets(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error cargando lechones:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los lechones",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+
   useEffect(() => {
     if (activeTab === "cerdas") {
       loadSows();
     } else if (activeTab === "verracos") {
       loadBoars();
+    } else if (activeTab === "lechones") {
+      loadPiglets();
     }
-  }, [activeTab, loadSows, loadBoars]);
+  }, [activeTab, loadSows, loadBoars, loadPiglets]);
 
   // Filtrar cerdas por búsqueda
   const filteredSows = sows.filter(sow => {
@@ -102,6 +127,19 @@ export default function ReproductiveList() {
       boar.breed?.toLowerCase().includes(searchLower) ||
       boar.farm_name?.toLowerCase().includes(searchLower) ||
       boar.supplier_name?.toLowerCase().includes(searchLower)
+    );
+  });
+
+  // Filtrar lechones por búsqueda
+  const filteredPiglets = piglets.filter(piglet => {
+    const searchLower = search.toLowerCase();
+    return (
+      piglet.ear_tag?.toLowerCase().includes(searchLower) ||
+      piglet.temporary_id?.toLowerCase().includes(searchLower) ||
+      piglet.sow_ear_tag?.toLowerCase().includes(searchLower) ||
+      piglet.sow_alias?.toLowerCase().includes(searchLower) ||
+      piglet.sire_ear_tag?.toLowerCase().includes(searchLower) ||
+      piglet.sire_name?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -237,7 +275,7 @@ export default function ReproductiveList() {
               <PiggyBank className="h-4 w-4" />
               Verracos
             </TabsTrigger>
-            <TabsTrigger value="lechones" className="flex items-center gap-2" disabled>
+            <TabsTrigger value="lechones" className="flex items-center gap-2">
               <Baby className="h-4 w-4" />
               Lechones
             </TabsTrigger>
@@ -566,8 +604,149 @@ export default function ReproductiveList() {
           {/* Tab de Lechones (deshabilitado) */}
           <TabsContent value="lechones">
             <Card>
-              <CardContent className="py-8 text-center">
-                <p className="text-gray-500">Módulo en desarrollo</p>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Listado de Lechones</CardTitle>
+                    <CardDescription>
+                      {filteredPiglets.length} lechones registrados
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    {/* Botones de exportación */}
+                    {filteredPiglets.length > 0 && (
+                      <div className="flex gap-2 mr-2">
+                        <Button 
+                          onClick={() => exportAllPigletsToPDF(filteredPiglets)} 
+                          variant="outline"
+                          className="border-green-600 text-green-600 hover:bg-green-50"
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Exportar PDF
+                        </Button>
+                        <Button 
+                          onClick={() => exportAllPigletsToExcel(filteredPiglets)} 
+                          variant="outline"
+                          className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                        >
+                          <FileSpreadsheet className="h-4 w-4 mr-2" />
+                          Exportar Excel
+                        </Button>
+                      </div>
+                    )}
+                    <Button onClick={() => navigate("/piglets/register")} className="bg-pink-600 hover:bg-pink-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nuevo Lechón
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Buscador */}
+                <div className="mb-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="Buscar por arete, ID temporal, madre, padre..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+
+                {/* Tabla */}
+                {isLoading ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Cargando...</p>
+                  </div>
+                ) : filteredPiglets.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No se encontraron lechones</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Arete / ID Temporal</TableHead>
+                          <TableHead>Sexo</TableHead>
+                          <TableHead>Madre</TableHead>
+                          <TableHead>Padre</TableHead>
+                          <TableHead>Fecha Nacimiento</TableHead>
+                          <TableHead>Peso Nac. (kg)</TableHead>
+                          <TableHead>Estado</TableHead>
+                          <TableHead>Estado Actual</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredPiglets.map((piglet) => (
+                          <TableRow key={piglet.id}>
+                            <TableCell className="font-semibold">
+                              {piglet.ear_tag || (
+                                <span className="text-gray-500 italic">
+                                  {piglet.temporary_id || `ID: ${piglet.id}`}
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {piglet.sex === 'macho' ? '♂ Macho' : piglet.sex === 'hembra' ? '♀ Hembra' : 'Indefinido'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {piglet.sow_ear_tag || "-"}
+                              {piglet.sow_alias && (
+                                <span className="text-gray-500 text-sm ml-1">
+                                  ({piglet.sow_alias})
+                                </span>
+                              )}
+                              {piglet.adoptive_sow_ear_tag && (
+                                <Badge variant="secondary" className="ml-2 text-xs">
+                                  Adoptado por: {piglet.adoptive_sow_ear_tag}
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {piglet.sire_ear_tag || "-"}
+                              {piglet.sire_name && (
+                                <span className="text-gray-500 text-sm ml-1">
+                                  ({piglet.sire_name})
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell>{formatDate(piglet.birth_date)}</TableCell>
+                            <TableCell>{piglet.birth_weight ? `${piglet.birth_weight} kg` : "-"}</TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={
+                                  piglet.birth_status === 'vivo' ? 'default' : 
+                                  piglet.birth_status === 'muerto' ? 'destructive' : 
+                                  'secondary'
+                                }
+                              >
+                                {piglet.birth_status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={
+                                  piglet.current_status === 'lactante' ? 'default' :
+                                  piglet.current_status === 'destetado' ? 'secondary' :
+                                  piglet.current_status === 'vendido' ? 'outline' :
+                                  piglet.current_status === 'muerto' ? 'destructive' :
+                                  'secondary'
+                                }
+                              >
+                                {piglet.current_status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

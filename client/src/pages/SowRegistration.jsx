@@ -1026,7 +1026,7 @@ export default function SowRegistration() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="bg-pink-600 hover:bg-pink-700"
+                  className="bg-pink-600 hover:bg-pink-700 text-gray-50"
                 >
                   {isLoading ? (isEditMode ? "Actualizando..." : "Registrando...") : (isEditMode ? "Actualizar Cerda" : "Registrar Cerda")}
                 </Button>

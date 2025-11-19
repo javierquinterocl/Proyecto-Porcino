@@ -9,6 +9,9 @@ const heatRoutes = require('./routes/heatRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 const pregnancyRoutes = require('./routes/pregnancyRoutes');
 const birthRoutes = require('./routes/birthRoutes');
+const abortionRoutes = require('./routes/abortionRoutes');
+const pigletRoutes = require('./routes/pigletRoutes');
+const calendarEventRoutes = require('./routes/calendarEventRoutes');
 
 // Importar y configurar jobs automáticos
 const { heatStatusJob } = require('./jobs/heatStatusJob');
@@ -94,6 +97,9 @@ app.use('/api/heats', heatRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/pregnancies', pregnancyRoutes);
 app.use('/api/births', birthRoutes);
+app.use('/api/abortions', abortionRoutes);
+app.use('/api/piglets', pigletRoutes);
+app.use('/api/calendar-events', calendarEventRoutes);
 
 // Manejo de rutas no encontradas
 app.use((req, res) => {

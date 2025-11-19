@@ -22,8 +22,11 @@ import PregnanciesListPage from './pages/PregnanciesList'
 import PregnancyRegistrationPage from './pages/PregnancyRegistration'
 import BirthsListPage from './pages/BirthsList'
 import BirthRegistrationPage from './pages/BirthRegistration'
-import CriticalPeriodsPage from './pages/CriticalPeriodsPage'
-import ReproductiveParametersPage from './pages/ReproductiveParametersPage'
+import AbortionsListPage from './pages/AbortionsList'
+import AbortionRegistrationPage from './pages/AbortionRegistration'
+import PigletRegistrationPage from './pages/PigletRegistration'
+import CalendarPage from './pages/CalendarPage'
+import ReportsPage from './pages/ReportsPage'
 import Dashboard from './pages/Dashboard'
 import MyAccountPage from './pages/MyAccount'
 import { Toaster } from './components/ui/toaster'
@@ -69,8 +72,13 @@ function App() {
             <Route path="/births" element={<BirthsListPage />} />
             <Route path="/births/register" element={<BirthRegistrationPage />} />
             <Route path="/births/edit/:id" element={<BirthRegistrationPage />} />
-            <Route path="/critical-periods" element={<CriticalPeriodsPage />} />
-            <Route path="/reproductive-parameters" element={<ReproductiveParametersPage />} />
+          <Route path="/abortions" element={<AbortionsListPage />} />
+          <Route path="/abortions/register" element={<AbortionRegistrationPage />} />
+          <Route path="/abortions/edit/:id" element={<AbortionRegistrationPage />} />
+          <Route path="/piglets/register" element={<PigletRegistrationPage />} />
+          <Route path="/piglets/edit/:id" element={<PigletRegistrationPage />} />
+            <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/reportes" element={<ReportsPage />} />
             <Route path="/pigs" element={<PigsListPage />} />
             <Route path="/profile" element={<MyAccountPage />} />
             <Route path="/employees" element={<div>Gestión de Empleados</div>} />
