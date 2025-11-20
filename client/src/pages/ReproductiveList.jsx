@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { Search, Eye, Edit2, Trash2, Plus, PiggyBank, Baby, Upload, X, Image as ImageIcon, FileText, FileSpreadsheet, Download, MoreVertical } from "lucide-react";
+import { Search, Eye, Edit2, Trash2, Plus, PiggyBank, Baby, Upload, X, Image as ImageIcon, FileText, FileSpreadsheet, Download, MoreVertical, RefreshCw } from "lucide-react";
 import { pigService, pigletService } from "@/services/api";
 import { useToast } from "@/components/ui/use-toast";
 import { 
@@ -42,6 +42,23 @@ export default function ReproductiveList() {
   // Estados para modales
   const [viewDialog, setViewDialog] = useState({ open: false, sow: null });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, sow: null });
+  
+  // Estados para modales de lechones
+  const [pigletDetailDialog, setPigletDetailDialog] = useState({ open: false, piglet: null });
+  const [pigletStatusDialog, setPigletStatusDialog] = useState({ open: false, piglet: null });
+  const [statusFormData, setStatusFormData] = useState({
+    current_status: "",
+    weaning_date: "",
+    weaning_weight: "",
+    weaning_age_days: "",
+    death_date: "",
+    death_age_days: "",
+    death_cause: "",
+    adoptive_sow_id: "",
+    adoption_date: "",
+    adoption_reason: "",
+    notes: ""
+  });
 
   // Cargar cerdas
   const loadSows = useCallback(async () => {
@@ -246,6 +263,113 @@ export default function ReproductiveList() {
       toast({
         title: "Error",
         description: error.response?.data?.message || `No se pudo eliminar ${deleteDialog.type === 'cerda' ? 'la cerda' : 'el verraco'}`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Funciones para manejar lechones
+  const handleViewPigletDetails = (piglet) => {
+    setPigletDetailDialog({ open: true, piglet });
+  };
+
+  const handleChangeStatus = (piglet) => {
+    // Si el lechón ya está en un estado final, solo mostrar detalles
+    if (['muerto', 'vendido', 'transferido', 'destetado'].includes(piglet.current_status)) {
+      setPigletDetailDialog({ open: true, piglet });
+      return;
+    }
+
+    // Abrir modal de cambio de estado
+    setStatusFormData({
+      current_status: piglet.current_status || "lactante",
+      weaning_date: piglet.weaning_date?.split('T')[0] || "",
+      weaning_weight: piglet.weaning_weight || "",
+      weaning_age_days: piglet.weaning_age_days || "",
+      death_date: piglet.death_date?.split('T')[0] || "",
+      death_age_days: piglet.death_age_days || "",
+      death_cause: piglet.death_cause || "",
+      adoptive_sow_id: piglet.adoptive_sow_id || "",
+      adoption_date: piglet.adoption_date?.split('T')[0] || "",
+      adoption_reason: piglet.adoption_reason || "",
+      notes: piglet.notes || ""
+    });
+    setPigletStatusDialog({ open: true, piglet });
+  };
+
+  const handleStatusFormChange = (field, value) => {
+    setStatusFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleStatusSubmit = async () => {
+    try {
+      const currentPiglet = pigletStatusDialog.piglet;
+      
+      // Incluir todos los campos obligatorios del lechón actual
+      const updateData = {
+        // Campos obligatorios que deben mantenerse
+        sex: currentPiglet.sex,
+        ear_tag: currentPiglet.ear_tag,
+        temporary_id: currentPiglet.temporary_id,
+        birth_order: currentPiglet.birth_order,
+        birth_weight: currentPiglet.birth_weight,
+        current_weight: currentPiglet.current_weight,
+        birth_status: currentPiglet.birth_status,
+        special_care: currentPiglet.special_care,
+        
+        // Campos que se están actualizando
+        current_status: statusFormData.current_status,
+        notes: statusFormData.notes,
+        
+        // Mantener campos de adopción existentes si no se están cambiando
+        adoptive_sow_id: currentPiglet.adoptive_sow_id,
+        adoption_date: currentPiglet.adoption_date,
+        adoption_reason: currentPiglet.adoption_reason,
+        
+        // Mantener campos de destete existentes si no se están cambiando
+        weaning_date: currentPiglet.weaning_date,
+        weaning_weight: currentPiglet.weaning_weight,
+        weaning_age_days: currentPiglet.weaning_age_days,
+        
+        // Mantener campos de muerte existentes si no se están cambiando
+        death_date: currentPiglet.death_date,
+        death_age_days: currentPiglet.death_age_days,
+        death_cause: currentPiglet.death_cause
+      };
+
+      // Sobrescribir campos según el nuevo estado
+      if (statusFormData.current_status === 'destetado') {
+        updateData.weaning_date = statusFormData.weaning_date || null;
+        updateData.weaning_weight = statusFormData.weaning_weight ? parseFloat(statusFormData.weaning_weight) : null;
+        updateData.weaning_age_days = statusFormData.weaning_age_days ? parseInt(statusFormData.weaning_age_days) : null;
+      } else if (statusFormData.current_status === 'muerto') {
+        updateData.death_date = statusFormData.death_date || null;
+        updateData.death_age_days = statusFormData.death_age_days ? parseInt(statusFormData.death_age_days) : null;
+        updateData.death_cause = statusFormData.death_cause || null;
+      } else if (statusFormData.current_status === 'transferido') {
+        updateData.adoptive_sow_id = statusFormData.adoptive_sow_id ? parseInt(statusFormData.adoptive_sow_id) : null;
+        updateData.adoption_date = statusFormData.adoption_date || null;
+        updateData.adoption_reason = statusFormData.adoption_reason || null;
+      }
+
+      await pigletService.updatePiglet(pigletStatusDialog.piglet.id, updateData);
+
+      toast({
+        title: "Estado actualizado",
+        description: "El estado del lechón se ha actualizado correctamente",
+        className: "bg-green-50 border-green-200"
+      });
+
+      setPigletStatusDialog({ open: false, piglet: null });
+      loadPiglets();
+    } catch (error) {
+      console.error("Error actualizando estado:", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "No se pudo actualizar el estado del lechón",
         variant: "destructive"
       });
     }
@@ -677,72 +801,100 @@ export default function ReproductiveList() {
                           <TableHead>Peso Nac. (kg)</TableHead>
                           <TableHead>Estado</TableHead>
                           <TableHead>Estado Actual</TableHead>
+                          <TableHead className="text-right">Acciones</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredPiglets.map((piglet) => (
-                          <TableRow key={piglet.id}>
-                            <TableCell className="font-semibold">
-                              {piglet.ear_tag || (
-                                <span className="text-gray-500 italic">
-                                  {piglet.temporary_id || `ID: ${piglet.id}`}
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline">
-                                {piglet.sex === 'macho' ? '♂ Macho' : piglet.sex === 'hembra' ? '♀ Hembra' : 'Indefinido'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {piglet.sow_ear_tag || "-"}
-                              {piglet.sow_alias && (
-                                <span className="text-gray-500 text-sm ml-1">
-                                  ({piglet.sow_alias})
-                                </span>
-                              )}
-                              {piglet.adoptive_sow_ear_tag && (
-                                <Badge variant="secondary" className="ml-2 text-xs">
-                                  Adoptado por: {piglet.adoptive_sow_ear_tag}
+                        {filteredPiglets.map((piglet) => {
+                          const isInFinalStatus = ['muerto', 'vendido', 'transferido', 'destetado'].includes(piglet.current_status);
+                          
+                          return (
+                            <TableRow key={piglet.id}>
+                              <TableCell className="font-semibold">
+                                {piglet.ear_tag || (
+                                  <span className="text-gray-500 italic">
+                                    {piglet.temporary_id || `ID: ${piglet.id}`}
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline">
+                                  {piglet.sex === 'macho' ? '♂ Macho' : piglet.sex === 'hembra' ? '♀ Hembra' : 'Indefinido'}
                                 </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {piglet.sire_ear_tag || "-"}
-                              {piglet.sire_name && (
-                                <span className="text-gray-500 text-sm ml-1">
-                                  ({piglet.sire_name})
-                                </span>
-                              )}
-                            </TableCell>
-                            <TableCell>{formatDate(piglet.birth_date)}</TableCell>
-                            <TableCell>{piglet.birth_weight ? `${piglet.birth_weight} kg` : "-"}</TableCell>
-                            <TableCell>
-                              <Badge 
-                                variant={
-                                  piglet.birth_status === 'vivo' ? 'default' : 
-                                  piglet.birth_status === 'muerto' ? 'destructive' : 
-                                  'secondary'
-                                }
-                              >
-                                {piglet.birth_status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge 
-                                variant={
-                                  piglet.current_status === 'lactante' ? 'default' :
-                                  piglet.current_status === 'destetado' ? 'secondary' :
-                                  piglet.current_status === 'vendido' ? 'outline' :
-                                  piglet.current_status === 'muerto' ? 'destructive' :
-                                  'secondary'
-                                }
-                              >
-                                {piglet.current_status}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                              </TableCell>
+                              <TableCell>
+                                {piglet.sow_ear_tag || "-"}
+                                {piglet.sow_alias && (
+                                  <span className="text-gray-500 text-sm ml-1">
+                                    ({piglet.sow_alias})
+                                  </span>
+                                )}
+                                {piglet.adoptive_sow_ear_tag && (
+                                  <Badge variant="secondary" className="ml-2 text-xs">
+                                    Adoptado por: {piglet.adoptive_sow_ear_tag}
+                                  </Badge>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {piglet.sire_ear_tag || "-"}
+                                {piglet.sire_name && (
+                                  <span className="text-gray-500 text-sm ml-1">
+                                    ({piglet.sire_name})
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell>{formatDate(piglet.birth_date)}</TableCell>
+                              <TableCell>{piglet.birth_weight ? `${piglet.birth_weight} kg` : "-"}</TableCell>
+                              <TableCell>
+                                <Badge 
+                                  variant={
+                                    piglet.birth_status === 'vivo' ? 'default' : 
+                                    piglet.birth_status === 'muerto' ? 'destructive' : 
+                                    'secondary'
+                                  }
+                                >
+                                  {piglet.birth_status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge 
+                                  variant={
+                                    piglet.current_status === 'lactante' ? 'default' :
+                                    piglet.current_status === 'destetado' ? 'secondary' :
+                                    piglet.current_status === 'vendido' ? 'outline' :
+                                    piglet.current_status === 'muerto' ? 'destructive' :
+                                    'secondary'
+                                  }
+                                >
+                                  {piglet.current_status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleViewPigletDetails(piglet)}
+                                    title="Ver detalles"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  {!isInFinalStatus && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleChangeStatus(piglet)}
+                                      title="Cambiar estado"
+                                      className="text-blue-600 hover:text-blue-700"
+                                    >
+                                      <RefreshCw className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>
@@ -1041,6 +1193,382 @@ export default function ReproductiveList() {
                 className="min-w-[100px] bg-red-600 hover:bg-red-700 text-white"
               >
                 Eliminar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de Detalles del Lechón */}
+        <Dialog open={pigletDetailDialog.open} onOpenChange={(open) => setPigletDetailDialog({ open, piglet: null })}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-2xl">Detalles del Lechón</DialogTitle>
+              <DialogDescription>
+                Información completa de {pigletDetailDialog.piglet?.ear_tag || pigletDetailDialog.piglet?.temporary_id || `ID: ${pigletDetailDialog.piglet?.id}`}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {pigletDetailDialog.piglet && (
+              <div className="space-y-6">
+                {/* Imagen del lechón */}
+                <div className="flex justify-center">
+                  {pigletDetailDialog.piglet.photo_url ? (
+                    <img 
+                      src={pigletDetailDialog.piglet.photo_url} 
+                      alt={pigletDetailDialog.piglet.ear_tag || 'Lechón'}
+                      className="w-48 h-48 object-cover rounded-lg border-4 border-pink-200 shadow-lg"
+                    />
+                  ) : (
+                    <div className="w-48 h-48 border-4 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center bg-gray-50">
+                      <Baby className="h-12 w-12 text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-500">Sin imagen</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Sección de Identificación */}
+                <div className="space-y-3 border-l-4 border-pink-400 pl-4">
+                  <h3 className="font-semibold text-lg flex items-center gap-2 text-pink-600">
+                    <Baby className="h-5 w-5" />
+                    Identificación
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-gray-500 text-xs">Arete</Label>
+                      <p className="font-medium">{pigletDetailDialog.piglet.ear_tag || "-"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500 text-xs">ID Temporal</Label>
+                      <p className="font-medium">{pigletDetailDialog.piglet.temporary_id || "-"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500 text-xs">Sexo</Label>
+                      <Badge variant="outline">
+                        {pigletDetailDialog.piglet.sex === 'macho' ? '♂ Macho' : 
+                         pigletDetailDialog.piglet.sex === 'hembra' ? '♀ Hembra' : 'Indefinido'}
+                      </Badge>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500 text-xs">Estado al Nacer</Label>
+                      <Badge variant={pigletDetailDialog.piglet.birth_status === 'vivo' ? 'default' : 'destructive'}>
+                        {pigletDetailDialog.piglet.birth_status}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sección de Nacimiento */}
+                <div className="space-y-3 border-l-4 border-blue-400 pl-4">
+                  <h3 className="font-semibold text-lg text-blue-600">Nacimiento</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-gray-500 text-xs">Fecha de Nacimiento</Label>
+                      <p className="font-medium">{formatDate(pigletDetailDialog.piglet.birth_date)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500 text-xs">Número de Parto</Label>
+                      <p className="font-medium">{pigletDetailDialog.piglet.birth_number || "-"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500 text-xs">Madre</Label>
+                      <p className="font-medium">
+                        {pigletDetailDialog.piglet.sow_ear_tag}
+                        {pigletDetailDialog.piglet.sow_alias && (
+                          <span className="text-gray-500 text-sm ml-1">
+                            ({pigletDetailDialog.piglet.sow_alias})
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500 text-xs">Padre</Label>
+                      <p className="font-medium">
+                        {pigletDetailDialog.piglet.sire_ear_tag || "-"}
+                        {pigletDetailDialog.piglet.sire_name && (
+                          <span className="text-gray-500 text-sm ml-1">
+                            ({pigletDetailDialog.piglet.sire_name})
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sección de Pesos */}
+                <div className="space-y-3 border-l-4 border-green-400 pl-4">
+                  <h3 className="font-semibold text-lg text-green-600">Pesos</h3>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <Label className="text-gray-500 text-xs">Peso al Nacer</Label>
+                      <p className="font-medium">{pigletDetailDialog.piglet.birth_weight ? `${pigletDetailDialog.piglet.birth_weight} kg` : "-"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500 text-xs">Peso Actual</Label>
+                      <p className="font-medium">{pigletDetailDialog.piglet.current_weight ? `${pigletDetailDialog.piglet.current_weight} kg` : "-"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-gray-500 text-xs">Peso al Destete</Label>
+                      <p className="font-medium">{pigletDetailDialog.piglet.weaning_weight ? `${pigletDetailDialog.piglet.weaning_weight} kg` : "-"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sección de Adopción (si aplica) */}
+                {pigletDetailDialog.piglet.adoptive_sow_id && (
+                  <div className="space-y-3 border-l-4 border-yellow-400 pl-4">
+                    <h3 className="font-semibold text-lg text-yellow-600">Adopción</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-gray-500 text-xs">Madre Adoptiva</Label>
+                        <p className="font-medium">{pigletDetailDialog.piglet.adoptive_sow_ear_tag || "-"}</p>
+                      </div>
+                      <div>
+                        <Label className="text-gray-500 text-xs">Fecha de Adopción</Label>
+                        <p className="font-medium">{formatDate(pigletDetailDialog.piglet.adoption_date)}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="text-gray-500 text-xs">Razón de Adopción</Label>
+                        <p className="font-medium">{pigletDetailDialog.piglet.adoption_reason || "-"}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Sección de Destete (si aplica) */}
+                {pigletDetailDialog.piglet.weaning_date && (
+                  <div className="space-y-3 border-l-4 border-purple-400 pl-4">
+                    <h3 className="font-semibold text-lg text-purple-600">Destete</h3>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <Label className="text-gray-500 text-xs">Fecha de Destete</Label>
+                        <p className="font-medium">{formatDate(pigletDetailDialog.piglet.weaning_date)}</p>
+                      </div>
+                      <div>
+                        <Label className="text-gray-500 text-xs">Peso al Destete</Label>
+                        <p className="font-medium">{pigletDetailDialog.piglet.weaning_weight ? `${pigletDetailDialog.piglet.weaning_weight} kg` : "-"}</p>
+                      </div>
+                      <div>
+                        <Label className="text-gray-500 text-xs">Edad al Destete</Label>
+                        <p className="font-medium">{pigletDetailDialog.piglet.weaning_age_days ? `${pigletDetailDialog.piglet.weaning_age_days} días` : "-"}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Sección de Muerte (si aplica) */}
+                {pigletDetailDialog.piglet.death_date && (
+                  <div className="space-y-3 border-l-4 border-red-400 pl-4">
+                    <h3 className="font-semibold text-lg text-red-600">Muerte</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-gray-500 text-xs">Fecha de Muerte</Label>
+                        <p className="font-medium">{formatDate(pigletDetailDialog.piglet.death_date)}</p>
+                      </div>
+                      <div>
+                        <Label className="text-gray-500 text-xs">Edad al Morir</Label>
+                        <p className="font-medium">{pigletDetailDialog.piglet.death_age_days ? `${pigletDetailDialog.piglet.death_age_days} días` : "-"}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="text-gray-500 text-xs">Causa de Muerte</Label>
+                        <p className="font-medium">{pigletDetailDialog.piglet.death_cause || "-"}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Estado Actual */}
+                <div className="space-y-3 border-l-4 border-indigo-400 pl-4">
+                  <h3 className="font-semibold text-lg text-indigo-600">Estado Actual</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-gray-500 text-xs">Estado</Label>
+                      <Badge 
+                        variant={
+                          pigletDetailDialog.piglet.current_status === 'lactante' ? 'default' :
+                          pigletDetailDialog.piglet.current_status === 'destetado' ? 'secondary' :
+                          pigletDetailDialog.piglet.current_status === 'vendido' ? 'outline' :
+                          pigletDetailDialog.piglet.current_status === 'muerto' ? 'destructive' :
+                          'secondary'
+                        }
+                      >
+                        {pigletDetailDialog.piglet.current_status}
+                      </Badge>
+                    </div>
+                  </div>
+                  {pigletDetailDialog.piglet.notes && (
+                    <div>
+                      <Label className="text-gray-500 text-xs">Notas</Label>
+                      <p className="text-sm mt-1 whitespace-pre-wrap">{pigletDetailDialog.piglet.notes}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button onClick={() => setPigletDetailDialog({ open: false, piglet: null })}>
+                Cerrar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de Cambio de Estado */}
+        <Dialog open={pigletStatusDialog.open} onOpenChange={(open) => setPigletStatusDialog({ open, piglet: null })}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Cambiar Estado del Lechón</DialogTitle>
+              <DialogDescription>
+                Actualiza el estado de {pigletStatusDialog.piglet?.ear_tag || pigletStatusDialog.piglet?.temporary_id || `ID: ${pigletStatusDialog.piglet?.id}`}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              {/* Selector de Estado */}
+              <div className="space-y-2">
+                <Label>Estado Actual *</Label>
+                <Select 
+                  value={statusFormData.current_status} 
+                  onValueChange={(value) => handleStatusFormChange('current_status', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="lactante">Lactante</SelectItem>
+                    <SelectItem value="destetado">Destetado</SelectItem>
+                    <SelectItem value="transferido">Transferido (Adopción)</SelectItem>
+                    <SelectItem value="vendido">Vendido</SelectItem>
+                    <SelectItem value="muerto">Muerto</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Campos de Destete */}
+              {statusFormData.current_status === 'destetado' && (
+                <div className="space-y-3 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                  <h4 className="font-semibold text-purple-700">Información de Destete</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Fecha de Destete</Label>
+                      <Input 
+                        type="date"
+                        value={statusFormData.weaning_date}
+                        onChange={(e) => handleStatusFormChange('weaning_date', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Peso al Destete (kg)</Label>
+                      <Input 
+                        type="number"
+                        step="0.01"
+                        value={statusFormData.weaning_weight}
+                        onChange={(e) => handleStatusFormChange('weaning_weight', e.target.value)}
+                        placeholder="Ej: 7.5"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Edad al Destete (días)</Label>
+                      <Input 
+                        type="number"
+                        value={statusFormData.weaning_age_days}
+                        onChange={(e) => handleStatusFormChange('weaning_age_days', e.target.value)}
+                        placeholder="Ej: 21"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Campos de Adopción/Transferencia */}
+              {statusFormData.current_status === 'transferido' && (
+                <div className="space-y-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <h4 className="font-semibold text-yellow-700">Información de Adopción</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Madre Adoptiva (ID)</Label>
+                      <Input 
+                        type="number"
+                        value={statusFormData.adoptive_sow_id}
+                        onChange={(e) => handleStatusFormChange('adoptive_sow_id', e.target.value)}
+                        placeholder="ID de la cerda adoptiva"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Fecha de Adopción</Label>
+                      <Input 
+                        type="date"
+                        value={statusFormData.adoption_date}
+                        onChange={(e) => handleStatusFormChange('adoption_date', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2 col-span-2">
+                      <Label>Razón de Adopción</Label>
+                      <Input 
+                        value={statusFormData.adoption_reason}
+                        onChange={(e) => handleStatusFormChange('adoption_reason', e.target.value)}
+                        placeholder="Ej: Madre sin suficiente leche"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Campos de Muerte */}
+              {statusFormData.current_status === 'muerto' && (
+                <div className="space-y-3 p-4 bg-red-50 rounded-lg border border-red-200">
+                  <h4 className="font-semibold text-red-700">Información de Muerte</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Fecha de Muerte</Label>
+                      <Input 
+                        type="date"
+                        value={statusFormData.death_date}
+                        onChange={(e) => handleStatusFormChange('death_date', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Edad al Morir (días)</Label>
+                      <Input 
+                        type="number"
+                        value={statusFormData.death_age_days}
+                        onChange={(e) => handleStatusFormChange('death_age_days', e.target.value)}
+                        placeholder="Ej: 5"
+                      />
+                    </div>
+                    <div className="space-y-2 col-span-2">
+                      <Label>Causa de Muerte</Label>
+                      <Input 
+                        value={statusFormData.death_cause}
+                        onChange={(e) => handleStatusFormChange('death_cause', e.target.value)}
+                        placeholder="Ej: Aplastamiento, enfermedad, etc."
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Notas */}
+              <div className="space-y-2">
+                <Label>Notas Adicionales</Label>
+                <textarea
+                  className="w-full min-h-[80px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  value={statusFormData.notes}
+                  onChange={(e) => handleStatusFormChange('notes', e.target.value)}
+                  placeholder="Información adicional sobre el cambio de estado..."
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => setPigletStatusDialog({ open: false, piglet: null })}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={handleStatusSubmit} className="bg-pink-600 hover:bg-pink-700">
+                Guardar Cambios
               </Button>
             </DialogFooter>
           </DialogContent>

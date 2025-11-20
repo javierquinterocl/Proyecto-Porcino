@@ -361,7 +361,6 @@ CREATE TABLE births (
   updated_by TEXT,
   
   -- Validaciones
-  CHECK (birth_date <= CURRENT_DATE),
   CHECK (total_born = born_alive + born_dead + mummified),
   CHECK (birth_end_time IS NULL OR birth_start_time IS NULL OR birth_end_time >= birth_start_time),
   CHECK (lactation_start_date IS NULL OR lactation_start_date >= birth_date),
@@ -384,6 +383,9 @@ CREATE TABLE piglets (
   sex VARCHAR(10) NOT NULL CHECK (sex IN ('macho','hembra','indefinido')),
   birth_weight NUMERIC(4,2) CHECK (birth_weight >= 0),
   birth_status VARCHAR(20) NOT NULL CHECK (birth_status IN ('vivo','muerto','momificado')) DEFAULT 'vivo',
+  
+  -- Peso actual
+  current_weight NUMERIC(5,2) CHECK (current_weight >= 0),
   
   -- Estado actual
   current_status VARCHAR(20) NOT NULL CHECK (current_status IN ('lactante','destetado','vendido','muerto','transferido')) DEFAULT 'lactante',

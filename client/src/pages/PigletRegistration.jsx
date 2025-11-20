@@ -21,6 +21,7 @@ export default function PigletRegistration() {
   const [births, setBirths] = useState([]);
   const [sows, setSows] = useState([]);
   const [selectedBirth, setSelectedBirth] = useState(null);
+  const [pigletsCount, setPigletsCount] = useState(0);
   
   // Estado del formulario
   const [formData, setFormData] = useState({
@@ -39,6 +40,9 @@ export default function PigletRegistration() {
     birth_weight: "",
     birth_status: "vivo",
     current_status: "lactante",
+    
+    // Peso actual
+    current_weight: "",
     
     // Adopción/transferencia
     adoptive_sow_id: "",
@@ -114,6 +118,7 @@ export default function PigletRegistration() {
         birth_weight: piglet.birth_weight?.toString() || "",
         birth_status: piglet.birth_status || "vivo",
         current_status: piglet.current_status || "lactante",
+        current_weight: piglet.current_weight?.toString() || "",
         adoptive_sow_id: piglet.adoptive_sow_id?.toString() || "",
         adoption_date: piglet.adoption_date?.split('T')[0] || "",
         adoption_reason: piglet.adoption_reason || "",
@@ -172,6 +177,16 @@ export default function PigletRegistration() {
           sow_id: birth.sow_id?.toString() || "",
           sire_id: birth.boar_id?.toString() || ""
         }));
+        
+        // Obtener cantidad de lechones ya registrados para este parto
+        pigletService.getByBirthId(parseInt(value))
+          .then(piglets => {
+            setPigletsCount(piglets.length || 0);
+          })
+          .catch(err => {
+            console.error("Error obteniendo lechones del parto:", err);
+            setPigletsCount(0);
+          });
       }
     }
   };
@@ -191,6 +206,11 @@ export default function PigletRegistration() {
     // Campos obligatorios
     if (!formData.birth_id) newErrors.birth_id = "Seleccione un parto";
     if (!formData.sex) newErrors.sex = "El sexo es obligatorio";
+    
+    // Validar que no se exceda el número de lechones del parto (solo en modo creación)
+    if (!isEditMode && selectedBirth && pigletsCount >= selectedBirth.total_born) {
+      newErrors.birth_id = `No se pueden registrar más lechones. Este parto tiene ${selectedBirth.total_born} lechones y ya hay ${pigletsCount} registrados.`;
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -224,6 +244,7 @@ export default function PigletRegistration() {
         birth_weight: formData.birth_weight ? parseFloat(formData.birth_weight) : null,
         birth_status: formData.birth_status || "vivo",
         current_status: formData.current_status || "lactante",
+        current_weight: formData.current_weight ? parseFloat(formData.current_weight) : null,
         adoptive_sow_id: formData.adoptive_sow_id ? parseInt(formData.adoptive_sow_id) : null,
         adoption_date: formData.adoption_date || null,
         adoption_reason: formData.adoption_reason || null,
@@ -360,6 +381,36 @@ export default function PigletRegistration() {
                     </SelectContent>
                   </Select>
                   {errors.birth_id && <p className="text-sm text-red-500">{errors.birth_id}</p>}
+                  
+                  {/* Indicador de lechones registrados */}
+                  {selectedBirth && !isEditMode && (
+                    <div className={`mt-2 p-3 rounded-lg border ${
+                      pigletsCount >= selectedBirth.total_born 
+                        ? 'bg-red-50 border-red-200' 
+                        : pigletsCount >= selectedBirth.total_born * 0.8 
+                        ? 'bg-yellow-50 border-yellow-200' 
+                        : 'bg-green-50 border-green-200'
+                    }`}>
+                      <p className={`text-sm font-medium ${
+                        pigletsCount >= selectedBirth.total_born 
+                          ? 'text-red-700' 
+                          : pigletsCount >= selectedBirth.total_born * 0.8 
+                          ? 'text-yellow-700' 
+                          : 'text-green-700'
+                      }`}>
+                        Lechones registrados: {pigletsCount} de {selectedBirth.total_born}
+                      </p>
+                      {pigletsCount < selectedBirth.total_born ? (
+                        <p className="text-xs text-gray-600 mt-1">
+                          Puede registrar {selectedBirth.total_born - pigletsCount} lechón(es) más
+                        </p>
+                      ) : (
+                        <p className="text-xs text-red-600 mt-1">
+                          ⚠️ Ya se registraron todos los lechones de este parto
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Información del parto seleccionado */}
@@ -422,14 +473,14 @@ export default function PigletRegistration() {
             </CardContent>
           </Card>
 
-          {/* Sección 3: Datos al Nacimiento */}
+          {/* Sección 3: Datos al Nacimiento y Peso Actual */}
           <Card>
             <CardHeader>
-              <CardTitle>Datos al Nacimiento</CardTitle>
-              <CardDescription>Información del lechón al momento de nacer</CardDescription>
+              <CardTitle>Datos al Nacimiento y Peso Actual</CardTitle>
+              <CardDescription>Información del lechón al momento de nacer y peso actual</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div className="space-y-2">
                   <Label htmlFor="sex">
                     Sexo <span className="text-red-500">*</span>
@@ -451,19 +502,6 @@ export default function PigletRegistration() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="birth_weight">Peso al Nacer (kg)</Label>
-                  <Input
-                    id="birth_weight"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.birth_weight}
-                    onChange={(e) => handleInputChange("birth_weight", e.target.value)}
-                    placeholder="1.5"
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="birth_status">Estado al Nacer</Label>
                   <Select
                     value={formData.birth_status}
@@ -478,6 +516,36 @@ export default function PigletRegistration() {
                       <SelectItem value="momificado">Momificado</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="birth_weight">Peso al Nacer (kg)</Label>
+                  <Input
+                    id="birth_weight"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.birth_weight}
+                    onChange={(e) => handleInputChange("birth_weight", e.target.value)}
+                    placeholder="1.5"
+                  />
+                  <p className="text-xs text-gray-500">Peso al momento del nacimiento</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="current_weight">Peso Actual (kg)</Label>
+                  <Input
+                    id="current_weight"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.current_weight}
+                    onChange={(e) => handleInputChange("current_weight", e.target.value)}
+                    placeholder="3.5"
+                  />
+                  <p className="text-xs text-gray-500">Peso actual del lechón</p>
                 </div>
 
                 <div className="space-y-2">

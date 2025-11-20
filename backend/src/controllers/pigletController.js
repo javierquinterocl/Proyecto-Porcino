@@ -208,7 +208,7 @@ const pigletController = {
     try {
       const {
         birth_id, sow_id, sire_id, ear_tag, temporary_id,
-        birth_order, sex, birth_weight, birth_status, current_status,
+        birth_order, sex, birth_weight, current_weight, birth_status, current_status,
         adoptive_sow_id, adoption_date, adoption_reason,
         weaning_date, weaning_weight, weaning_age_days,
         death_date, death_age_days, death_cause,
@@ -229,6 +229,15 @@ const pigletController = {
         return res.status(404).json({
           success: false,
           message: 'Parto no encontrado'
+        });
+      }
+
+      // Verificar que no se exceda el número de lechones registrados en el parto
+      const existingPiglets = await pigletModel.getByBirthId(birth_id);
+      if (existingPiglets.length >= birth.total_born) {
+        return res.status(400).json({
+          success: false,
+          message: `No se pueden registrar más lechones. El parto tiene registrado un total de ${birth.total_born} lechones y ya hay ${existingPiglets.length} registrados.`
         });
       }
 
@@ -263,7 +272,7 @@ const pigletController = {
 
       const pigletData = {
         birth_id, sow_id, sire_id, ear_tag, temporary_id,
-        birth_order, sex, birth_weight, birth_status, current_status,
+        birth_order, sex, birth_weight, current_weight, birth_status, current_status,
         adoptive_sow_id, adoption_date, adoption_reason,
         weaning_date, weaning_weight, weaning_age_days,
         death_date, death_age_days, death_cause,
@@ -293,7 +302,7 @@ const pigletController = {
     try {
       const { id } = req.params;
       const {
-        ear_tag, temporary_id, birth_order, sex, birth_weight, birth_status,
+        ear_tag, temporary_id, birth_order, sex, birth_weight, current_weight, birth_status,
         current_status, adoptive_sow_id, adoption_date, adoption_reason,
         weaning_date, weaning_weight, weaning_age_days,
         death_date, death_age_days, death_cause,
@@ -329,7 +338,7 @@ const pigletController = {
       }
 
       const pigletData = {
-        ear_tag, temporary_id, birth_order, sex, birth_weight, birth_status,
+        ear_tag, temporary_id, birth_order, sex, birth_weight, current_weight, birth_status,
         current_status, adoptive_sow_id, adoption_date, adoption_reason,
         weaning_date, weaning_weight, weaning_age_days,
         death_date, death_age_days, death_cause,

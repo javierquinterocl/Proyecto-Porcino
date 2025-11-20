@@ -160,7 +160,7 @@ const pigletModel = {
   create: async (pigletData) => {
     const {
       birth_id, sow_id, sire_id, ear_tag, temporary_id,
-      birth_order, sex, birth_weight, birth_status, current_status,
+      birth_order, sex, birth_weight, current_weight, birth_status, current_status,
       adoptive_sow_id, adoption_date, adoption_reason,
       weaning_date, weaning_weight, weaning_age_days,
       death_date, death_age_days, death_cause,
@@ -170,18 +170,18 @@ const pigletModel = {
     const result = await pool.query(
       `INSERT INTO piglets (
         birth_id, sow_id, sire_id, ear_tag, temporary_id,
-        birth_order, sex, birth_weight, birth_status, current_status,
+        birth_order, sex, birth_weight, current_weight, birth_status, current_status,
         adoptive_sow_id, adoption_date, adoption_reason,
         weaning_date, weaning_weight, weaning_age_days,
         death_date, death_age_days, death_cause,
         special_care, notes, created_by
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
-        $17, $18, $19, $20, $21, $22
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
+        $18, $19, $20, $21, $22, $23
       ) RETURNING *`,
       [
         birth_id, sow_id, sire_id, ear_tag || null, temporary_id || null,
-        birth_order || null, sex, birth_weight || null, 
+        birth_order || null, sex, birth_weight || null, current_weight || null,
         birth_status || 'vivo', current_status || 'lactante',
         adoptive_sow_id || null, adoption_date || null, adoption_reason || null,
         weaning_date || null, weaning_weight || null, weaning_age_days || null,
@@ -196,7 +196,7 @@ const pigletModel = {
   // Actualizar un lechón
   update: async (id, pigletData) => {
     const {
-      ear_tag, temporary_id, birth_order, sex, birth_weight, birth_status, 
+      ear_tag, temporary_id, birth_order, sex, birth_weight, current_weight, birth_status, 
       current_status, adoptive_sow_id, adoption_date, adoption_reason,
       weaning_date, weaning_weight, weaning_age_days,
       death_date, death_age_days, death_cause,
@@ -206,14 +206,14 @@ const pigletModel = {
     const result = await pool.query(
       `UPDATE piglets SET
         ear_tag = $1, temporary_id = $2, birth_order = $3, sex = $4,
-        birth_weight = $5, birth_status = $6, current_status = $7,
-        adoptive_sow_id = $8, adoption_date = $9, adoption_reason = $10,
-        weaning_date = $11, weaning_weight = $12, weaning_age_days = $13,
-        death_date = $14, death_age_days = $15, death_cause = $16,
-        special_care = $17, notes = $18, updated_at = NOW(), updated_by = $19
-      WHERE id = $20 RETURNING *`,
+        birth_weight = $5, current_weight = $6, birth_status = $7, current_status = $8,
+        adoptive_sow_id = $9, adoption_date = $10, adoption_reason = $11,
+        weaning_date = $12, weaning_weight = $13, weaning_age_days = $14,
+        death_date = $15, death_age_days = $16, death_cause = $17,
+        special_care = $18, notes = $19, updated_at = NOW(), updated_by = $20
+      WHERE id = $21 RETURNING *`,
       [
-        ear_tag, temporary_id, birth_order, sex, birth_weight, birth_status,
+        ear_tag, temporary_id, birth_order, sex, birth_weight, current_weight, birth_status,
         current_status, adoptive_sow_id, adoption_date, adoption_reason,
         weaning_date, weaning_weight, weaning_age_days,
         death_date, death_age_days, death_cause,

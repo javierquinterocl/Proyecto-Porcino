@@ -893,6 +893,10 @@ export const pigletService = {
     const response = await api.get(url);
     return response.data.data;
   },
+  getByBirthId: async (birthId) => {
+    const response = await api.get(`/piglets/birth/${birthId}`);
+    return response.data.data;
+  },
   createPiglet: async (pigletData) => {
     const response = await api.post('/piglets', pigletData);
     return response.data;
@@ -951,6 +955,48 @@ export const calendarEventService = {
     const response = await api.delete(`/calendar-events/${id}`);
     return response.data;
   }
+};
+
+// ==================== REPORT SERVICE ====================
+
+export const reportService = {
+  // Obtener estadísticas de reproductores
+  getReproductorsStats: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    
+    const queryString = queryParams.toString();
+    const url = queryString ? `/reports/reproductors?${queryString}` : '/reports/reproductors';
+    const response = await api.get(url);
+    return response.data.data;
+  },
+  
+  // Obtener estadísticas de datos reproductivos
+  getReproductiveStats: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.sowId) queryParams.append('sowId', params.sowId);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    
+    const queryString = queryParams.toString();
+    const url = queryString ? `/reports/reproductive?${queryString}` : '/reports/reproductive';
+    const response = await api.get(url);
+    return response.data.data;
+  },
+  
+  // Obtener KPIs productivos
+  getProductivityKPIs: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.sowId) queryParams.append('sowId', params.sowId);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    
+    const queryString = queryParams.toString();
+    const url = queryString ? `/reports/kpis?${queryString}` : '/reports/kpis';
+    const response = await api.get(url);
+    return response.data.data;
+  },
 };
 
 export default api;
