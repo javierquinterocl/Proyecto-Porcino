@@ -1,5 +1,6 @@
 const heatModel = require('../models/heatModel');
 const sowModel = require('../models/sowModel');
+const { canRegisterHeat, canInduceHeat } = require('../utils/reproductiveValidations');
 
 const heatController = {
   // GET /api/heats - Obtener todos los celos con filtros opcionales
@@ -218,6 +219,23 @@ const heatController = {
         }
       }
 
+      // VALIDACIONES REPRODUCTIVAS
+      const validation = heatData.heat_type === 'inducido' 
+        ? await canInduceHeat(heatData.sow_id, heatData.heat_date)
+        : await canRegisterHeat(heatData.sow_id, heatData.heat_date);
+
+      if (!validation.valid) {
+        return res.status(400).json({
+          success: false,
+          message: 'No se puede registrar el celo',
+          errors: validation.errors,
+          warnings: validation.warnings
+        });
+      }
+
+      // Si hay advertencias pero es válido, incluirlas en la respuesta
+      const responseWarnings = validation.warnings.length > 0 ? validation.warnings : undefined;
+
       // Sanitizar campos booleanos
       const booleanFields = [
         'standing_reflex', 'vulva_swelling', 'vulva_discharge', 'mounting_behavior',
@@ -267,7 +285,8 @@ const heatController = {
       res.status(201).json({
         success: true,
         message: 'Celo registrado exitosamente',
-        data: newHeat
+        data: newHeat,
+        warnings: responseWarnings
       });
     } catch (error) {
       console.error('Error al crear celo:', error);

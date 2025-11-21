@@ -11,6 +11,7 @@ router.use(authMiddleware);
 router.get('/', sowController.getAll);
 router.get('/stats', sowController.getStats);
 router.get('/ear-tag/:ear_tag', sowController.getByEarTag);
+router.get('/:id/reproductive-status', sowController.getReproductiveStatusById);
 router.get('/:id', sowController.getById);
 
 // Ruta para subir foto (solo una imagen a la vez)

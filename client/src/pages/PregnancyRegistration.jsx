@@ -420,31 +420,55 @@ export default function PregnancyRegistration() {
         confirmed: Boolean(formData.confirmed)
       };
 
+      let response;
       if (isEditMode) {
-        await pregnancyService.updatePregnancy(id, dataToSend);
+        response = await pregnancyService.updatePregnancy(id, dataToSend);
         toast({
           title: "¡Éxito!",
           description: "Gestación actualizada correctamente",
           className: "bg-green-50 border-green-200"
         });
       } else {
-        await pregnancyService.createPregnancy(dataToSend);
-        toast({
-          title: "¡Éxito!",
-          description: "Gestación registrada correctamente",
-          className: "bg-green-50 border-green-200"
-        });
+        response = await pregnancyService.createPregnancy(dataToSend);
+        
+        // Mostrar advertencias si existen
+        if (response.warnings && response.warnings.length > 0) {
+          toast({
+            title: "⚠️ Gestación registrada con advertencias",
+            description: response.warnings.join(". "),
+            className: "bg-yellow-50 border-yellow-200",
+            duration: 6000
+          });
+        } else {
+          toast({
+            title: "¡Éxito!",
+            description: "Gestación registrada correctamente",
+            className: "bg-green-50 border-green-200"
+          });
+        }
       }
 
       // Navegar a la lista de gestaciones
       navigate("/pregnancies");
     } catch (error) {
       console.error("Error al registrar gestación:", error);
-      toast({
-        title: "Error",
-        description: error.response?.data?.message || "No se pudo registrar la gestación",
-        variant: "destructive"
-      });
+      
+      // Manejar errores de validación reproductiva
+      if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        const errorList = error.response.data.errors.join("\n• ");
+        toast({
+          title: "❌ No se puede registrar la gestación",
+          description: "• " + errorList,
+          variant: "destructive",
+          duration: 8000
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error.response?.data?.message || "No se pudo registrar la gestación",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsLoading(false);
     }

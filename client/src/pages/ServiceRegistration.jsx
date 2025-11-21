@@ -138,20 +138,32 @@ const ServiceRegistration = () => {
         serviceData.semen_concentration = formData.ia_concentration ? parseFloat(formData.ia_concentration) : null;
       }
 
+      let response;
       if (isEdit) {
-        await serviceService.updateService(id, serviceData);
+        response = await serviceService.updateService(id, serviceData);
         toast({
           title: "¡Éxito!",
           description: "Servicio actualizado correctamente",
           variant: "default"
         });
       } else {
-        await serviceService.createService(serviceData);
-        toast({
-          title: "¡Éxito!",
-          description: "Servicio registrado correctamente",
-          variant: "default"
-        });
+        response = await serviceService.createService(serviceData);
+        
+        // Mostrar advertencias si existen
+        if (response.warnings && response.warnings.length > 0) {
+          toast({
+            title: "⚠️ Servicio registrado con advertencias",
+            description: response.warnings.join(". "),
+            className: "bg-yellow-50 border-yellow-200",
+            duration: 6000
+          });
+        } else {
+          toast({
+            title: "¡Éxito!",
+            description: "Servicio registrado correctamente",
+            variant: "default"
+          });
+        }
       }
 
       setTimeout(() => {
@@ -159,11 +171,23 @@ const ServiceRegistration = () => {
       }, 1500);
     } catch (err) {
       console.error('Error saving service:', err);
-      toast({
-        title: "Error al guardar",
-        description: err.response?.data?.error || "No se pudo guardar el servicio",
-        variant: "destructive"
-      });
+      
+      // Manejar errores de validación reproductiva
+      if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
+        const errorList = err.response.data.errors.join("\n• ");
+        toast({
+          title: "❌ No se puede registrar el servicio",
+          description: "• " + errorList,
+          variant: "destructive",
+          duration: 8000
+        });
+      } else {
+        toast({
+          title: "Error al guardar",
+          description: err.response?.data?.error || "No se pudo guardar el servicio",
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 const pregnancyModel = require('../models/pregnancyModel');
 const sowModel = require('../models/sowModel');
 const serviceModel = require('../models/serviceModel');
+const { canRegisterPregnancy } = require('../utils/reproductiveValidations');
 
 const pregnancyController = {
   // GET /api/pregnancies - Obtener todas las gestaciones con filtros opcionales
@@ -283,6 +284,25 @@ const pregnancyController = {
         });
       }
 
+      // VALIDACIONES REPRODUCTIVAS
+      const validation = await canRegisterPregnancy(
+        pregnancyData.sow_id, 
+        pregnancyData.service_id, 
+        pregnancyData.conception_date
+      );
+
+      if (!validation.valid) {
+        return res.status(400).json({
+          success: false,
+          message: 'No se puede registrar la gestación',
+          errors: validation.errors,
+          warnings: validation.warnings
+        });
+      }
+
+      // Si hay advertencias pero es válido, incluirlas en la respuesta
+      const responseWarnings = validation.warnings.length > 0 ? validation.warnings : undefined;
+
       // Validar fecha de concepción
       if (new Date(pregnancyData.conception_date) > new Date()) {
         return res.status(400).json({
@@ -349,7 +369,8 @@ const pregnancyController = {
       res.status(201).json({
         success: true,
         message: 'Gestación registrada exitosamente',
-        data: newPregnancy
+        data: newPregnancy,
+        warnings: responseWarnings
       });
     } catch (error) {
       console.error('Error al crear gestación:', error);

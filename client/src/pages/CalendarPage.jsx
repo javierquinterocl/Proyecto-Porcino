@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { Calendar, ChevronLeft, ChevronRight, Plus, Download, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { pregnancyService, heatService, calendarEventService } from "@/services/api";
+import { pregnancyService, heatService, calendarEventService, serviceService } from "@/services/api";
 
 export default function CalendarPage() {
   const navigate = useNavigate();
@@ -29,6 +29,7 @@ export default function CalendarPage() {
   const [eventForm, setEventForm] = useState({
     title: "",
     event_date: "",
+    event_time: "",
     event_type: "custom",
     description: "",
     notes: "",
@@ -54,10 +55,23 @@ export default function CalendarPage() {
       
       // Agregar eventos personalizados
       customEventsData.forEach(event => {
+        const eventDate = new Date(event.event_date);
+        let displayTitle = event.title;
+        
+        // Si tiene hora, agregarla al título
+        if (event.event_date && event.event_date.includes('T')) {
+          const timeStr = eventDate.toLocaleTimeString('es-ES', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: false
+          });
+          displayTitle = `${timeStr} - ${event.title}`;
+        }
+        
         calculatedEvents.push({
           id: `custom-${event.id}`,
-          title: event.title,
-          date: new Date(event.event_date),
+          title: displayTitle,
+          date: eventDate,
           type: 'custom',
           color: 'text-blue-600',
           data: event,
@@ -92,21 +106,31 @@ export default function CalendarPage() {
         }
       });
       
-      // Cargar celos para calcular próximos celos
+      // Cargar celos
       const heats = await heatService.getAllHeats();
       
-      // Calcular próximos celos esperados (ciclo de 21 días aproximadamente)
       heats.forEach(heat => {
+        // Agregar el celo registrado
+        const heatDate = new Date(heat.heat_date);
+        calculatedEvents.push({
+          id: `heat-registered-${heat.id}`,
+          title: `Celo Registrado - ${heat.sow_ear_tag || heat.sow_alias || 'Cerda ' + heat.sow_id}`,
+          date: heatDate,
+          type: 'heat',
+          color: 'text-pink-600',
+          data: heat
+        });
+        
+        // Calcular próximo celo esperado (ciclo de 21 días aproximadamente)
         if (heat.status === 'finalizado' && !heat.service_performed) {
-          const heatDate = new Date(heat.heat_date);
           const nextHeatDate = new Date(heatDate);
           nextHeatDate.setDate(nextHeatDate.getDate() + 21);
           
           // Solo agregar si es futuro
           if (nextHeatDate > new Date()) {
             calculatedEvents.push({
-              id: `heat-${heat.id}`,
-              title: `Celo Esperado - ${heat.sow_ear_tag || 'Cerda ' + heat.sow_id}`,
+              id: `heat-expected-${heat.id}`,
+              title: `Próximo Celo Esperado - ${heat.sow_ear_tag || heat.sow_alias || 'Cerda ' + heat.sow_id}`,
               date: nextHeatDate,
               type: 'heat',
               color: 'text-pink-600',
@@ -115,6 +139,24 @@ export default function CalendarPage() {
           }
         }
       });
+
+      // Cargar servicios/montas
+      try {
+        const services = await serviceService.getAllServices();
+        services.forEach(service => {
+          const serviceDate = new Date(service.service_date);
+          calculatedEvents.push({
+            id: `service-${service.id}`,
+            title: `Servicio/Monta - ${service.sow_ear_tag || service.sow_alias || 'Cerda ' + service.sow_id}`,
+            date: serviceDate,
+            type: 'custom',
+            color: 'text-blue-600',
+            data: service
+          });
+        });
+      } catch (error) {
+        console.log("No se pudieron cargar los servicios:", error);
+      }
       
       setEvents(calculatedEvents);
     } catch (error) {
@@ -186,30 +228,68 @@ export default function CalendarPage() {
       const dayEvents = getEventsForDay(day);
       const isToday = isCurrentMonth && today.getDate() === day;
       
+      // Determinar el color de fondo del día según los eventos
+      let dayBgColor = "";
+      let dayBorderColor = "border-gray-200";
+      
+      if (dayEvents.length > 0) {
+        // Priorizar eventos por importancia
+        const hasFarrowing = dayEvents.some(e => e.type === 'farrowing');
+        const hasHeat = dayEvents.some(e => e.type === 'heat');
+        const hasReminder = dayEvents.some(e => e.type === 'reminder');
+        const hasCustom = dayEvents.some(e => e.type === 'custom');
+        
+        if (hasFarrowing) {
+          dayBgColor = "bg-red-50";
+          dayBorderColor = "border-red-300";
+        } else if (hasHeat) {
+          dayBgColor = "bg-pink-50";
+          dayBorderColor = "border-pink-300";
+        } else if (hasReminder) {
+          dayBgColor = "bg-orange-50";
+          dayBorderColor = "border-orange-300";
+        } else if (hasCustom) {
+          dayBgColor = "bg-blue-50";
+          dayBorderColor = "border-blue-300";
+        }
+      }
+      
+      // Si es hoy, mantener el estilo de hoy pero con un borde más prominente
+      if (isToday) {
+        dayBgColor = dayBgColor || "bg-red-50";
+        dayBorderColor = "border-red-500 border-2";
+      }
+      
       days.push(
         <div
           key={day}
           className={cn(
-            "min-h-[100px] p-2 border border-gray-200 hover:bg-gray-50 cursor-pointer relative",
-            isToday && "bg-red-50 border-red-300"
+            "min-h-[100px] p-2 border cursor-pointer relative transition-colors",
+            dayBgColor,
+            dayBorderColor,
+            !dayBgColor && "hover:bg-gray-50"
           )}
           onClick={() => handleDayClick(day)}
         >
           <div className={cn(
-            "inline-flex items-center justify-center w-7 h-7 rounded-full mb-1",
-            isToday && "bg-red-500 text-white font-bold"
+            "inline-flex items-center justify-center w-7 h-7 rounded-full mb-1 font-semibold",
+            isToday && "bg-red-500 text-white",
+            !isToday && dayEvents.length > 0 && "font-bold"
           )}>
             {day}
           </div>
           
-              <div className="space-y-1">
+          <div className="space-y-1">
             {dayEvents.map((event, idx) => (
               <div
                 key={event.id}
                 className={cn(
                   "text-xs px-2 py-1 rounded truncate flex items-center justify-between group",
-                  event.color,
-                  "bg-opacity-10 cursor-pointer hover:bg-opacity-20"
+                  event.type === 'farrowing' && "bg-red-100 text-red-800 border border-red-200",
+                  event.type === 'heat' && "bg-pink-100 text-pink-800 border border-pink-200",
+                  event.type === 'reminder' && "bg-orange-100 text-orange-800 border border-orange-200",
+                  event.type === 'custom' && "bg-blue-100 text-blue-800 border border-blue-200",
+                  "cursor-pointer hover:opacity-80"
                 )}
                 title={event.title}
                 onClick={(e) => {
@@ -222,7 +302,7 @@ export default function CalendarPage() {
                 <span className="truncate flex-1">{event.title}</span>
                 {event.isCustom && (
                   <button
-                    className="opacity-0 group-hover:opacity-100 ml-1 text-red-600 hover:text-red-800"
+                    className="opacity-0 group-hover:opacity-100 ml-1 text-red-600 hover:text-red-800 font-bold"
                     onClick={(e) => {
                       e.stopPropagation();
                       const eventId = event.id.replace('custom-', '');
@@ -260,6 +340,7 @@ export default function CalendarPage() {
     setEventForm({
       title: "",
       event_date: "",
+      event_time: "",
       event_type: "custom",
       description: "",
       notes: "",
@@ -271,9 +352,17 @@ export default function CalendarPage() {
 
   const handleEditEvent = (event) => {
     setEditingEvent(event.data);
+    // Extraer la hora si existe en event_date (formato ISO)
+    let eventTime = "";
+    if (event.data.event_date && event.data.event_date.includes('T')) {
+      const dateObj = new Date(event.data.event_date);
+      eventTime = dateObj.toTimeString().slice(0, 5); // Formato HH:MM
+    }
+    
     setEventForm({
       title: event.data.title,
       event_date: event.data.event_date?.split('T')[0] || "",
+      event_time: eventTime || "",
       event_type: event.data.event_type || "custom",
       description: event.data.description || "",
       notes: event.data.notes || "",
@@ -294,9 +383,20 @@ export default function CalendarPage() {
         return;
       }
 
+      // Combinar fecha y hora si se proporcionó hora
+      let eventDateTime = eventForm.event_date;
+      if (eventForm.event_time) {
+        eventDateTime = `${eventForm.event_date}T${eventForm.event_time}:00`;
+      }
+
+      const eventData = {
+        ...eventForm,
+        event_date: eventDateTime
+      };
+
       if (editingEvent) {
         // Actualizar evento existente
-        await calendarEventService.updateEvent(editingEvent.id, eventForm);
+        await calendarEventService.updateEvent(editingEvent.id, eventData);
         toast({
           title: "¡Éxito!",
           description: "Evento actualizado correctamente",
@@ -304,7 +404,7 @@ export default function CalendarPage() {
         });
       } else {
         // Crear nuevo evento
-        await calendarEventService.createEvent(eventForm);
+        await calendarEventService.createEvent(eventData);
         toast({
           title: "¡Éxito!",
           description: "Evento creado correctamente",
@@ -359,12 +459,12 @@ export default function CalendarPage() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <Calendar className="h-8 w-8 text-[#6b7c45]" />
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Calendario de Eventos</h1>
-              <p className="text-sm text-gray-600 mt-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Calendario de Eventos</h1>
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 Gestiona fechas importantes y recordatorios
               </p>
             </div>
@@ -372,29 +472,32 @@ export default function CalendarPage() {
           
           <Button 
             onClick={handleCreateEvent}
-            className="bg-red-600 hover:bg-red-700"
+            className="bg-red-600 hover:bg-red-700 w-full sm:w-auto"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Nuevo evento
+            <span className="hidden sm:inline">Nuevo evento</span>
+            <span className="sm:hidden">Nuevo</span>
           </Button>
         </div>
 
         {/* Controls */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-4">
+              {/* Navegación de meses */}
+              <div className="flex items-center justify-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => changeMonth(-1)}
+                  className="flex-shrink-0"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  octubre
+                  <span className="hidden sm:inline">octubre</span>
                 </Button>
                 
-                <div className="text-center min-w-[200px]">
-                  <h2 className="text-2xl font-bold text-red-600">
+                <div className="text-center flex-1">
+                  <h2 className="text-xl sm:text-2xl font-bold text-red-600">
                     {monthNames[selectedMonth]} {selectedYear}
                   </h2>
                 </div>
@@ -403,15 +506,17 @@ export default function CalendarPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => changeMonth(1)}
+                  className="flex-shrink-0"
                 >
-                  diciembre
+                  <span className="hidden sm:inline">diciembre</span>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
 
-              <div className="flex items-center gap-4">
+              {/* Filtros */}
+              <div className="flex items-center justify-center">
                 <Select value={filterType} onValueChange={setFilterType}>
-                  <SelectTrigger className="w-[200px]">
+                  <SelectTrigger className="w-full sm:w-[250px]">
                     <SelectValue placeholder="Filtrar eventos" />
                   </SelectTrigger>
                   <SelectContent>
@@ -422,6 +527,26 @@ export default function CalendarPage() {
                     <SelectItem value="reminder">Recordatorios</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Leyenda de colores */}
+              <div className="flex flex-wrap items-center justify-center gap-4 pt-4 border-t">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-red-100 border-2 border-red-300 rounded"></div>
+                  <span className="text-xs text-gray-600">Parto Esperado</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-pink-100 border-2 border-pink-300 rounded"></div>
+                  <span className="text-xs text-gray-600">Celo Esperado</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-orange-100 border-2 border-orange-300 rounded"></div>
+                  <span className="text-xs text-gray-600">Recordatorio</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-blue-100 border-2 border-blue-300 rounded"></div>
+                  <span className="text-xs text-gray-600">Evento Personal</span>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -539,14 +664,26 @@ export default function CalendarPage() {
                 onChange={(e) => setEventForm({...eventForm, title: e.target.value})}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="event-date">Fecha *</Label>
-              <Input 
-                id="event-date" 
-                type="date" 
-                value={eventForm.event_date}
-                onChange={(e) => setEventForm({...eventForm, event_date: e.target.value})}
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="event-date">Fecha *</Label>
+                <Input 
+                  id="event-date" 
+                  type="date" 
+                  value={eventForm.event_date}
+                  onChange={(e) => setEventForm({...eventForm, event_date: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="event-time">Hora</Label>
+                <Input 
+                  id="event-time" 
+                  type="time" 
+                  value={eventForm.event_time}
+                  onChange={(e) => setEventForm({...eventForm, event_time: e.target.value})}
+                  placeholder="HH:MM"
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="event-type">Tipo de Evento</Label>

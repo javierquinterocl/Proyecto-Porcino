@@ -1,4 +1,5 @@
 const sowModel = require('../models/sowModel');
+const { getReproductiveStatus } = require('../utils/reproductiveValidations');
 
 const sowController = {
   // GET /api/sows - Obtener todas las cerdas con filtros opcionales
@@ -508,6 +509,34 @@ const sowController = {
       res.status(500).json({
         success: false,
         message: 'Error al cargar imagen',
+        error: error.message
+      });
+    }
+  },
+
+  // GET /api/sows/:id/reproductive-status - Obtener estado reproductivo completo
+  getReproductiveStatusById: async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const status = await getReproductiveStatus(id);
+      
+      if (!status) {
+        return res.status(404).json({
+          success: false,
+          message: 'Cerda no encontrada'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: status
+      });
+    } catch (error) {
+      console.error('Error al obtener estado reproductivo:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener estado reproductivo',
         error: error.message
       });
     }

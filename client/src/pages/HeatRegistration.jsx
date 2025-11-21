@@ -426,31 +426,55 @@ export default function HeatRegistration() {
         duration_hours: formData.duration_hours ? parseFloat(formData.duration_hours) : null
       };
 
+      let response;
       if (isEditMode) {
-        await heatService.updateHeat(id, dataToSend);
+        response = await heatService.updateHeat(id, dataToSend);
         toast({
           title: "¡Éxito!",
           description: "Celo actualizado correctamente",
           className: "bg-green-50 border-green-200"
         });
       } else {
-        await heatService.createHeat(dataToSend);
-        toast({
-          title: "¡Éxito!",
-          description: "Celo registrado correctamente",
-          className: "bg-green-50 border-green-200"
-        });
+        response = await heatService.createHeat(dataToSend);
+        
+        // Mostrar advertencias si existen
+        if (response.warnings && response.warnings.length > 0) {
+          toast({
+            title: "⚠️ Celo registrado con advertencias",
+            description: response.warnings.join(". "),
+            className: "bg-yellow-50 border-yellow-200",
+            duration: 6000
+          });
+        } else {
+          toast({
+            title: "¡Éxito!",
+            description: "Celo registrado correctamente",
+            className: "bg-green-50 border-green-200"
+          });
+        }
       }
 
       // Navegar a la lista de celos
       navigate("/heats");
     } catch (error) {
       console.error("Error al registrar celo:", error);
-      toast({
-        title: "Error",
-        description: error.response?.data?.message || "No se pudo registrar el celo",
-        variant: "destructive"
-      });
+      
+      // Manejar errores de validación reproductiva
+      if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        const errorList = error.response.data.errors.join("\n• ");
+        toast({
+          title: "❌ No se puede registrar el celo",
+          description: "• " + errorList,
+          variant: "destructive",
+          duration: 8000
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error.response?.data?.message || "No se pudo registrar el celo",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsLoading(false);
     }

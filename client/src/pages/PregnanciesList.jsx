@@ -253,20 +253,21 @@ export default function PregnanciesList() {
       )}
 
       {/* Header */}
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="flex items-center gap-3">
           <Heart className="h-8 w-8 text-pink-600" />
           <div>
-            <h1 className="text-3xl font-bold">Gestaciones/Preñeces</h1>
-            <p className="text-muted-foreground">Gestión de gestaciones y seguimiento de preñez</p>
+            <h1 className="text-2xl sm:text-3xl font-bold">Gestaciones/Preñeces</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Gestión de gestaciones y seguimiento de preñez</p>
           </div>
         </div>
         <Button 
           onClick={() => navigate("/pregnancies/register")}
-          className="bg-pink-600 hover:bg-pink-700"
+          className="bg-pink-600 hover:bg-pink-700 w-full sm:w-auto"
         >
           <Plus className="mr-2 h-4 w-4" />
-          Registrar Gestación
+          <span className="hidden sm:inline">Registrar Gestación</span>
+          <span className="sm:hidden">Nueva</span>
         </Button>
       </div>
 
@@ -454,41 +455,44 @@ export default function PregnanciesList() {
                       </TableCell>
                       <TableCell className="text-sm">{pregnancy.farm_name}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex justify-end gap-1 flex-wrap">
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-8 w-8"
                             onClick={() => handleView(pregnancy)}
                             title="Ver detalles"
                           >
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-3.5 w-3.5" />
                           </Button>
                           {pregnancy.status !== 'finalizada parto' && pregnancy.status !== 'finalizada aborto' && (
                             <>
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                className="h-8 w-8"
                                 onClick={() => handleEdit(pregnancy)}
                                 title="Editar"
                               >
-                                <Edit2 className="h-4 w-4" />
+                                <Edit2 className="h-3.5 w-3.5" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                className="h-8 w-8 text-red-600 hover:text-red-700"
                                 onClick={() => handleDelete(pregnancy)}
                                 title="Eliminar"
-                                className="text-red-600 hover:text-red-700"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                className="h-8 w-8"
                                 onClick={() => handleChangeStatus(pregnancy)}
                                 title="Cambiar estado"
                               >
-                                <CheckCircle2 className="h-4 w-4" />
+                                <CheckCircle2 className="h-3.5 w-3.5" />
                               </Button>
                             </>
                           )}

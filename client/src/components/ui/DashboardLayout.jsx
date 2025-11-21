@@ -30,10 +30,8 @@ export function DashboardLayout({ children }) {
       <Header toggleSidebar={toggleSidebar} />
       
       <div className="flex-1 flex min-h-0 overflow-hidden">
-        {/* Sidebar - oculto en móvil a menos que se active */}
-        <div className={`${isMobile ? (sidebarOpen ? 'block' : 'hidden') : 'block'} flex-shrink-0`}>
-          <Sidebar />
-        </div>
+        {/* Sidebar - ahora maneja su propia visibilidad */}
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         
         {/* Contenido principal con scroll independiente */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">

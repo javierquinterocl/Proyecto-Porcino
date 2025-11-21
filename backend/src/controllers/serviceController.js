@@ -2,6 +2,7 @@ const serviceModel = require('../models/serviceModel');
 const sowModel = require('../models/sowModel');
 const boarModel = require('../models/boarModel');
 const heatModel = require('../models/heatModel');
+const { canRegisterService } = require('../utils/reproductiveValidations');
 
 const serviceController = {
   /**
@@ -186,6 +187,25 @@ const serviceController = {
         });
       }
 
+      // VALIDACIONES REPRODUCTIVAS
+      const validation = await canRegisterService(
+        serviceData.sow_id, 
+        serviceData.heat_id, 
+        serviceData.service_date
+      );
+
+      if (!validation.valid) {
+        return res.status(400).json({
+          success: false,
+          message: 'No se puede registrar el servicio',
+          errors: validation.errors,
+          warnings: validation.warnings
+        });
+      }
+
+      // Si hay advertencias pero es válido, incluirlas en la respuesta
+      const responseWarnings = validation.warnings.length > 0 ? validation.warnings : undefined;
+
       // Sanitizar campos numéricos PRIMERO
       if (serviceData.service_number) {
         serviceData.service_number = parseInt(serviceData.service_number);
@@ -275,7 +295,8 @@ const serviceController = {
       res.status(201).json({
         success: true,
         message: 'Servicio registrado exitosamente',
-        data: newService
+        data: newService,
+        warnings: responseWarnings
       });
     } catch (error) {
       console.error('Error al crear servicio:', error);

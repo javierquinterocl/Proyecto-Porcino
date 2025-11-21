@@ -220,20 +220,20 @@ export default function ReportsPage() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <BarChart3 className="h-8 w-8 text-[#6b7c45]" />
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Reportes y Estadísticas</h1>
-              <p className="text-sm text-gray-600 mt-1">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Reportes y Estadísticas</h1>
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 Análisis completo de la producción y rendimiento de la granja
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
             <Select value={dateRange} onValueChange={setDateRange}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <Calendar className="h-4 w-4 mr-2" />
                 <SelectValue />
               </SelectTrigger>
@@ -246,31 +246,36 @@ export default function ReportsPage() {
               </SelectContent>
             </Select>
             
-            <Button variant="outline" className="gap-2" onClick={handleExportPDF}>
-              <FileText className="h-4 w-4" />
-              PDF
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" className="gap-1 sm:gap-2 flex-1 sm:flex-none" onClick={handleExportPDF}>
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">PDF</span>
+              </Button>
 
-            <Button variant="outline" className="gap-2" onClick={handleExportExcel}>
-              <FileSpreadsheet className="h-4 w-4" />
-              Excel
-            </Button>
+              <Button variant="outline" className="gap-1 sm:gap-2 flex-1 sm:flex-none" onClick={handleExportExcel}>
+                <FileSpreadsheet className="h-4 w-4" />
+                <span className="hidden sm:inline">Excel</span>
+              </Button>
+            </div>
           </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="reproductors">
-              <Users className="h-4 w-4 mr-2" />
-              Reproductores
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 gap-2 h-auto">
+            <TabsTrigger value="reproductors" className="flex items-center justify-center gap-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Reproductores</span>
+              <span className="sm:hidden">Reprod.</span>
             </TabsTrigger>
-            <TabsTrigger value="reproductive">
-              <Heart className="h-4 w-4 mr-2" />
-              Datos Reproductivos
+            <TabsTrigger value="reproductive" className="flex items-center justify-center gap-2">
+              <Heart className="h-4 w-4" />
+              <span className="hidden sm:inline">Datos Reproductivos</span>
+              <span className="sm:hidden">Datos</span>
             </TabsTrigger>
-            <TabsTrigger value="kpis">
-              <TrendingUp className="h-4 w-4 mr-2" />
-              KPIs Productivos
+            <TabsTrigger value="kpis" className="flex items-center justify-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              <span className="hidden sm:inline">KPIs Productivos</span>
+              <span className="sm:hidden">KPIs</span>
             </TabsTrigger>
           </TabsList>
 

@@ -409,38 +409,39 @@ export default function ReproductiveList() {
           <TabsContent value="cerdas">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
                     <CardTitle>Listado de Cerdas</CardTitle>
                     <CardDescription>
                       {filteredSows.length} cerdas registradas
                     </CardDescription>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     {/* Botones de exportación */}
                     {filteredSows.length > 0 && (
-                      <div className="flex gap-2 mr-2">
+                      <div className="flex gap-2">
                         <Button 
                           onClick={() => exportAllSowsToPDF(filteredSows)} 
                           variant="outline"
-                          className="border-green-600 text-green-600 hover:bg-green-50"
+                          className="border-green-600 text-green-600 hover:bg-green-50 flex-1 sm:flex-none"
                         >
-                          <FileText className="h-4 w-4 mr-2" />
-                          Exportar PDF
+                          <FileText className="h-4 w-4 sm:mr-2" />
+                          <span className="hidden sm:inline">Exportar PDF</span>
                         </Button>
                         <Button 
                           onClick={() => exportAllSowsToExcel(filteredSows)} 
                           variant="outline"
-                          className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                          className="border-blue-600 text-blue-600 hover:bg-blue-50 flex-1 sm:flex-none"
                         >
-                          <FileSpreadsheet className="h-4 w-4 mr-2" />
-                          Exportar Excel
+                          <FileSpreadsheet className="h-4 w-4 sm:mr-2" />
+                          <span className="hidden sm:inline">Exportar Excel</span>
                         </Button>
                       </div>
                     )}
-                    <Button onClick={() => navigate("/sows/register")} className="bg-pink-600 hover:bg-pink-700">
+                    <Button onClick={() => navigate("/sows/register")} className="bg-pink-600 hover:bg-pink-700 w-full sm:w-auto">
                       <Plus className="h-4 w-4 mr-2" />
-                      Nueva Cerda
+                      <span className="hidden sm:inline">Nueva Cerda</span>
+                      <span className="sm:hidden">Nueva</span>
                     </Button>
                   </div>
                 </div>
@@ -500,34 +501,35 @@ export default function ReproductiveList() {
                             <TableCell>{sow.current_weight || "-"}</TableCell>
                             <TableCell>{sow.parity_count || 0}</TableCell>
                             <TableCell>
-                              <div className="flex justify-end gap-2">
+                              <div className="flex justify-end gap-1 flex-wrap">
                                 <Button
                                   variant="ghost"
-                                  size="sm"
+                                  size="icon"
+                                  className="h-8 w-8"
                                   onClick={() => handleViewSow(sow)}
                                   title="Ver detalles"
                                 >
-                                  <Eye className="h-4 w-4" />
+                                  <Eye className="h-3.5 w-3.5" />
                                 </Button>
                                 <Button
                                   variant="ghost"
-                                  size="sm"
+                                  size="icon"
+                                  className={`h-8 w-8 ${sow.status === 'descartada' ? 'opacity-50 cursor-not-allowed' : ''}`}
                                   onClick={() => handleEditSow(sow)}
                                   title={sow.status === 'descartada' ? 'No se puede editar una cerda descartada' : 'Editar'}
                                   disabled={sow.status === 'descartada'}
-                                  className={sow.status === 'descartada' ? 'opacity-50 cursor-not-allowed' : ''}
                                 >
-                                  <Edit2 className="h-4 w-4" />
+                                  <Edit2 className="h-3.5 w-3.5" />
                                 </Button>
                                 <Button
                                   variant="ghost"
-                                  size="sm"
+                                  size="icon"
+                                  className={`h-8 w-8 ${sow.status === 'descartada' ? 'opacity-50 cursor-not-allowed' : 'text-red-600 hover:text-red-700'}`}
                                   onClick={() => handleDeleteSow(sow)}
-                                  className={sow.status === 'descartada' ? 'opacity-50 cursor-not-allowed' : 'text-red-600 hover:text-red-700'}
                                   title={sow.status === 'descartada' ? 'Esta cerda ya está descartada' : 'Descartar'}
                                   disabled={sow.status === 'descartada'}
                                 >
-                                  <Trash2 className="h-4 w-4" />
+                                  <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                                 
                                 {/* Menú de exportación */}
@@ -535,10 +537,11 @@ export default function ReproductiveList() {
                                   <DropdownMenuTrigger asChild>
                                     <Button
                                       variant="ghost"
-                                      size="sm"
+                                      size="icon"
+                                      className="h-8 w-8"
                                       title="Exportar"
                                     >
-                                      <MoreVertical className="h-4 w-4" />
+                                      <MoreVertical className="h-3.5 w-3.5" />
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
@@ -568,38 +571,39 @@ export default function ReproductiveList() {
           <TabsContent value="verracos">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
                     <CardTitle>Listado de Verracos</CardTitle>
                     <CardDescription>
                       {filteredBoars.length} verracos registrados
                     </CardDescription>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     {/* Botones de exportación */}
                     {filteredBoars.length > 0 && (
-                      <div className="flex gap-2 mr-2">
+                      <div className="flex gap-2">
                         <Button 
                           onClick={() => exportAllBoarsToPDF(filteredBoars)} 
                           variant="outline"
-                          className="border-green-600 text-green-600 hover:bg-green-50"
+                          className="border-green-600 text-green-600 hover:bg-green-50 flex-1 sm:flex-none"
                         >
-                          <FileText className="h-4 w-4 mr-2" />
-                          Exportar PDF
+                          <FileText className="h-4 w-4 sm:mr-2" />
+                          <span className="hidden sm:inline">Exportar PDF</span>
                         </Button>
                         <Button 
                           onClick={() => exportAllBoarsToExcel(filteredBoars)} 
                           variant="outline"
-                          className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                          className="border-blue-600 text-blue-600 hover:bg-blue-50 flex-1 sm:flex-none"
                         >
-                          <FileSpreadsheet className="h-4 w-4 mr-2" />
-                          Exportar Excel
+                          <FileSpreadsheet className="h-4 w-4 sm:mr-2" />
+                          <span className="hidden sm:inline">Exportar Excel</span>
                         </Button>
                       </div>
                     )}
-                    <Button onClick={() => navigate("/boars/register")} className="bg-blue-600 hover:bg-blue-700">
+                    <Button onClick={() => navigate("/boars/register")} className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
                       <Plus className="h-4 w-4 mr-2" />
-                      Nuevo Verraco
+                      <span className="hidden sm:inline">Nuevo Verraco</span>
+                      <span className="sm:hidden">Nuevo</span>
                     </Button>
                   </div>
                 </div>
@@ -661,34 +665,35 @@ export default function ReproductiveList() {
                             <TableCell>{boar.current_weight || "-"}</TableCell>
                             <TableCell>{boar.total_services || 0}</TableCell>
                             <TableCell>
-                              <div className="flex justify-end gap-2">
+                              <div className="flex justify-end gap-1 flex-wrap">
                                 <Button
                                   variant="ghost"
-                                  size="sm"
+                                  size="icon"
+                                  className="h-8 w-8"
                                   onClick={() => handleViewBoar(boar)}
                                   title="Ver detalles"
                                 >
-                                  <Eye className="h-4 w-4" />
+                                  <Eye className="h-3.5 w-3.5" />
                                 </Button>
                                 <Button
                                   variant="ghost"
-                                  size="sm"
+                                  size="icon"
+                                  className={`h-8 w-8 ${boar.status === 'descartado' ? 'opacity-50 cursor-not-allowed' : ''}`}
                                   onClick={() => handleEditBoar(boar)}
                                   title={boar.status === 'descartado' ? 'No se puede editar un verraco descartado' : 'Editar'}
                                   disabled={boar.status === 'descartado'}
-                                  className={boar.status === 'descartado' ? 'opacity-50 cursor-not-allowed' : ''}
                                 >
-                                  <Edit2 className="h-4 w-4" />
+                                  <Edit2 className="h-3.5 w-3.5" />
                                 </Button>
                                 <Button
                                   variant="ghost"
-                                  size="sm"
+                                  size="icon"
+                                  className={`h-8 w-8 ${boar.status === 'descartado' ? 'opacity-50 cursor-not-allowed' : 'text-red-600 hover:text-red-700'}`}
                                   onClick={() => handleDeleteBoar(boar)}
-                                  className={boar.status === 'descartado' ? 'opacity-50 cursor-not-allowed' : 'text-red-600 hover:text-red-700'}
                                   title={boar.status === 'descartado' ? 'Este verraco ya está descartado' : 'Descartar'}
                                   disabled={boar.status === 'descartado'}
                                 >
-                                  <Trash2 className="h-4 w-4" />
+                                  <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                                 
                                 {/* Menú de exportación */}
@@ -696,10 +701,11 @@ export default function ReproductiveList() {
                                   <DropdownMenuTrigger asChild>
                                     <Button
                                       variant="ghost"
-                                      size="sm"
+                                      size="icon"
+                                      className="h-8 w-8"
                                       title="Exportar"
                                     >
-                                      <MoreVertical className="h-4 w-4" />
+                                      <MoreVertical className="h-3.5 w-3.5" />
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
@@ -729,38 +735,39 @@ export default function ReproductiveList() {
           <TabsContent value="lechones">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
                     <CardTitle>Listado de Lechones</CardTitle>
                     <CardDescription>
                       {filteredPiglets.length} lechones registrados
                     </CardDescription>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     {/* Botones de exportación */}
                     {filteredPiglets.length > 0 && (
-                      <div className="flex gap-2 mr-2">
+                      <div className="flex gap-2">
                         <Button 
                           onClick={() => exportAllPigletsToPDF(filteredPiglets)} 
                           variant="outline"
-                          className="border-green-600 text-green-600 hover:bg-green-50"
+                          className="border-green-600 text-green-600 hover:bg-green-50 flex-1 sm:flex-none"
                         >
-                          <FileText className="h-4 w-4 mr-2" />
-                          Exportar PDF
+                          <FileText className="h-4 w-4 sm:mr-2" />
+                          <span className="hidden sm:inline">Exportar PDF</span>
                         </Button>
                         <Button 
                           onClick={() => exportAllPigletsToExcel(filteredPiglets)} 
                           variant="outline"
-                          className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                          className="border-blue-600 text-blue-600 hover:bg-blue-50 flex-1 sm:flex-none"
                         >
-                          <FileSpreadsheet className="h-4 w-4 mr-2" />
-                          Exportar Excel
+                          <FileSpreadsheet className="h-4 w-4 sm:mr-2" />
+                          <span className="hidden sm:inline">Exportar Excel</span>
                         </Button>
                       </div>
                     )}
-                    <Button onClick={() => navigate("/piglets/register")} className="bg-pink-600 hover:bg-pink-700">
+                    <Button onClick={() => navigate("/piglets/register")} className="bg-pink-600 hover:bg-pink-700 w-full sm:w-auto">
                       <Plus className="h-4 w-4 mr-2" />
-                      Nuevo Lechón
+                      <span className="hidden sm:inline">Nuevo Lechón</span>
+                      <span className="sm:hidden">Nuevo</span>
                     </Button>
                   </div>
                 </div>
@@ -870,24 +877,25 @@ export default function ReproductiveList() {
                                 </Badge>
                               </TableCell>
                               <TableCell>
-                                <div className="flex justify-end gap-2">
+                                <div className="flex justify-end gap-1 flex-wrap">
                                   <Button
                                     variant="ghost"
-                                    size="sm"
+                                    size="icon"
+                                    className="h-8 w-8"
                                     onClick={() => handleViewPigletDetails(piglet)}
                                     title="Ver detalles"
                                   >
-                                    <Eye className="h-4 w-4" />
+                                    <Eye className="h-3.5 w-3.5" />
                                   </Button>
                                   {!isInFinalStatus && (
                                     <Button
                                       variant="ghost"
-                                      size="sm"
+                                      size="icon"
+                                      className="h-8 w-8 text-blue-600 hover:text-blue-700"
                                       onClick={() => handleChangeStatus(piglet)}
                                       title="Cambiar estado"
-                                      className="text-blue-600 hover:text-blue-700"
                                     >
-                                      <RefreshCw className="h-4 w-4" />
+                                      <RefreshCw className="h-3.5 w-3.5" />
                                     </Button>
                                   )}
                                 </div>
