@@ -47,7 +47,7 @@ export default function ReportsPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("reproductors");
-  const [dateRange, setDateRange] = useState("30");
+  const [dateRange, setDateRange] = useState("all"); // Cambiado a "all" por defecto
   const [selectedSow, setSelectedSow] = useState(null);
   const [sows, setSows] = useState([]);
 
@@ -85,6 +85,11 @@ export default function ReportsPage() {
   };
 
   const getDateRangeParams = () => {
+    // Si dateRange es 'all', no devolver parámetros de fecha (mostrar todos los registros)
+    if (dateRange === 'all') {
+      return {};
+    }
+    
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - parseInt(dateRange));
@@ -117,7 +122,9 @@ export default function ReportsPage() {
     try {
       setLoading(true);
       const params = {
-        ...getDateRangeParams(),
+        // Si hay cerda seleccionada, no aplicar filtro de fechas para ver todo su historial
+        // Si no hay cerda, aplicar filtro de fechas según el selector (incluyendo "all" que no envía fechas)
+        ...(selectedSow ? {} : getDateRangeParams()),
         ...(selectedSow ? { sowId: selectedSow } : {})
       };
       const data = await reportService.getReproductiveStats(params);
@@ -138,7 +145,9 @@ export default function ReportsPage() {
     try {
       setLoading(true);
       const params = {
-        ...getDateRangeParams(),
+        // Si hay cerda seleccionada, no aplicar filtro de fechas para ver todo su historial
+        // Si no hay cerda, aplicar filtro de fechas según el selector (incluyendo "all" que no envía fechas)
+        ...(selectedSow ? {} : getDateRangeParams()),
         ...(selectedSow ? { sowId: selectedSow } : {})
       };
       const data = await reportService.getProductivityKPIs(params);
@@ -232,12 +241,17 @@ export default function ReportsPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
-            <Select value={dateRange} onValueChange={setDateRange}>
+            <Select 
+              value={dateRange} 
+              onValueChange={setDateRange}
+              disabled={selectedSow !== null && activeTab !== "reproductors"}
+            >
               <SelectTrigger className="w-full sm:w-[180px]">
                 <Calendar className="h-4 w-4 mr-2" />
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">Todos los registros</SelectItem>
                 <SelectItem value="7">Últimos 7 días</SelectItem>
                 <SelectItem value="30">Últimos 30 días</SelectItem>
                 <SelectItem value="90">Últimos 3 meses</SelectItem>
@@ -314,7 +328,7 @@ export default function ReportsPage() {
             </Card>
 
             {reproductiveData && (
-              <ReproductiveTab data={reproductiveData} loading={loading} selectedSow={selectedSow} />
+              <ReproductiveTab data={reproductiveData} loading={loading} selectedSow={selectedSow} dateRange={dateRange} />
             )}
           </TabsContent>
 
@@ -683,7 +697,7 @@ function ReproductorsTab({ data, loading }) {
 // COMPONENTE: PESTAÑA DE DATOS REPRODUCTIVOS
 // ============================================================================
 
-function ReproductiveTab({ data, loading, selectedSow }) {
+function ReproductiveTab({ data, loading, selectedSow, dateRange }) {
   if (loading) {
     return <div className="text-center py-12">Cargando...</div>;
   }
@@ -714,16 +728,24 @@ function ReproductiveTab({ data, loading, selectedSow }) {
 
   return (
     <>
-      {/* Mensaje si es filtrado */}
-      {selectedSow && (
+      {/* Mensajes informativos sobre el filtrado */}
+      {selectedSow ? (
         <Card className="bg-blue-50 border-blue-200">
           <CardContent className="py-4">
             <p className="text-sm text-blue-700">
-              Mostrando datos reproductivos de la cerda seleccionada
+              <strong>Mostrando historial completo</strong> de la cerda seleccionada (sin filtro de fechas)
             </p>
           </CardContent>
         </Card>
-      )}
+      ) : dateRange === 'all' ? (
+        <Card className="bg-green-50 border-green-200">
+          <CardContent className="py-4">
+            <p className="text-sm text-green-700">
+              <strong>Mostrando todos los registros históricos</strong> sin filtro de fechas
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/* SECCIÓN: CELOS */}
       <Card>
@@ -1031,7 +1053,7 @@ function KPIsTab({ data, loading, selectedSow }) {
         <Card className="bg-blue-50 border-blue-200">
           <CardContent className="py-4">
             <p className="text-sm text-blue-700">
-              Mostrando KPIs productivos de la cerda seleccionada
+              <strong>Mostrando historial completo</strong> de la cerda seleccionada (sin filtro de fechas)
             </p>
           </CardContent>
         </Card>

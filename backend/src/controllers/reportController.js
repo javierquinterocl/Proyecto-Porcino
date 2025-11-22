@@ -25,7 +25,7 @@ const reportController = {
         pregnant: allSows.filter(s => s.reproductive_status === 'gestante').length,
         lactating: allSows.filter(s => s.reproductive_status === 'lactante').length,
         empty: allSows.filter(s => s.reproductive_status === 'vacia').length,
-        inHeat: allSows.filter(s => s.reproductive_status === 'celo').length,
+        inHeat: allSows.filter(s => s.reproductive_status === 'en celo').length,
         discarded: allSows.filter(s => s.status === 'descartada').length,
       };
 
@@ -39,12 +39,12 @@ const reportController = {
           return sum;
         }, 0);
 
-        const totalParities = activeSows.reduce((sum, s) => sum + (s.parity_number || 0), 0);
+        const totalParities = activeSows.reduce((sum, s) => sum + (s.parity_count || 0), 0);
 
         sowsStats.avgAge = activeSows.length > 0 ? totalAge / activeSows.length : 0;
         sowsStats.avgParities = activeSows.length > 0 ? totalParities / activeSows.length : 0;
-        sowsStats.firstParity = activeSows.filter(s => (s.parity_number || 0) === 0 || (s.parity_number || 0) === 1).length;
-        sowsStats.multiparous = activeSows.filter(s => (s.parity_number || 0) > 1).length;
+        sowsStats.firstParity = activeSows.filter(s => (s.parity_count || 0) === 0 || (s.parity_count || 0) === 1).length;
+        sowsStats.multiparous = activeSows.filter(s => (s.parity_count || 0) > 1).length;
         
         // Calcular promedio real de partos por cerda desde la tabla births
         const allBirths = await birthModel.getAll();
@@ -72,6 +72,13 @@ const reportController = {
         
         const totalPiglets = Object.values(pigletsPerSow).reduce((sum, count) => sum + count, 0);
         sowsStats.avgPigletsPerSow = activeSows.length > 0 ? totalPiglets / activeSows.length : 0;
+        
+        // Calcular sumatorias de indicadores productivos (desde los campos actualizados por triggers)
+        sowsStats.totalParities = activeSows.reduce((sum, s) => sum + (s.parity_count || 0), 0);
+        sowsStats.totalPigletsBorn = activeSows.reduce((sum, s) => sum + (s.total_piglets_born || 0), 0);
+        sowsStats.totalPigletsAlive = activeSows.reduce((sum, s) => sum + (s.total_piglets_alive || 0), 0);
+        sowsStats.totalPigletsDead = activeSows.reduce((sum, s) => sum + (s.total_piglets_dead || 0), 0);
+        sowsStats.totalAbortions = activeSows.reduce((sum, s) => sum + (s.total_abortions || 0), 0);
       }
 
       // Obtener datos de verracos
@@ -102,7 +109,7 @@ const reportController = {
         sold: allPiglets.filter(p => p.current_status === 'vendido').length,
         dead: allPiglets.filter(p => p.current_status === 'muerto').length,
         mummified: allPiglets.filter(p => p.birth_status === 'momificado').length,
-        bornDead: allPiglets.filter(p => p.birth_status === 'nacido muerto').length,
+        bornDead: allPiglets.filter(p => p.birth_status === 'muerto').length,
       };
 
       // Calcular peso promedio al nacer desde birth_weight de cada lechón
@@ -191,7 +198,7 @@ const reportController = {
         });
 
         pregnancies = pregnancies.filter(p => {
-          const date = new Date(p.service_date || p.created_at);
+          const date = new Date(p.conception_date || p.created_at);
           return date >= start && date <= end;
         });
 
@@ -308,14 +315,12 @@ const reportController = {
         total: abortions.length,
         rate: pregnancies.length > 0 ? (abortions.length / pregnancies.length) * 100 : 0,
         early: abortions.filter(a => {
-          if (!a.abortion_date || !a.conception_date) return false;
-          const days = (new Date(a.abortion_date) - new Date(a.conception_date)) / (1000 * 60 * 60 * 24);
-          return days < 60;
+          // Usar gestation_days que viene directamente del registro de aborto
+          return a.gestation_days && a.gestation_days < 60;
         }).length,
         late: abortions.filter(a => {
-          if (!a.abortion_date || !a.conception_date) return false;
-          const days = (new Date(a.abortion_date) - new Date(a.conception_date)) / (1000 * 60 * 60 * 24);
-          return days >= 60;
+          // Usar gestation_days que viene directamente del registro de aborto
+          return a.gestation_days && a.gestation_days >= 60;
         }).length,
       };
 
@@ -369,7 +374,7 @@ const reportController = {
         const end = new Date(endDate);
 
         services = services.filter(s => new Date(s.service_date) >= start && new Date(s.service_date) <= end);
-        pregnancies = pregnancies.filter(p => new Date(p.service_date || p.created_at) >= start && new Date(p.service_date || p.created_at) <= end);
+        pregnancies = pregnancies.filter(p => new Date(p.conception_date || p.created_at) >= start && new Date(p.conception_date || p.created_at) <= end);
         births = births.filter(b => new Date(b.birth_date) >= start && new Date(b.birth_date) <= end);
         abortions = abortions.filter(a => new Date(a.abortion_date) >= start && new Date(a.abortion_date) <= end);
       }
@@ -404,15 +409,36 @@ const reportController = {
       }
 
       // Lechones Destetados por Parto
-      const weanedPiglets = piglets.filter(p => p.current_status === 'destetado' || p.weaning_date);
+      // Contar lechones destetados que pertenecen a los partos en el rango de fechas
+      const birthIds = births.map(b => b.id);
+      const weanedPiglets = piglets.filter(p => 
+        birthIds.includes(p.birth_id) && 
+        (p.current_status === 'destetado' || p.weaning_date)
+      );
       kpis.avgWeaned = births.length > 0 ? weanedPiglets.length / births.length : 0;
 
       // Mortalidad Pre-Destete
       const totalBornAlive = births.reduce((sum, b) => sum + (b.born_alive || 0), 0);
-      const deadBeforeWeaning = piglets.filter(p => 
-        p.current_status === 'muerto' && 
-        (!p.weaning_date || new Date(p.death_date) < new Date(p.weaning_date))
-      ).length;
+      // Contar lechones que murieron antes del destete (nunca fueron destetados o murieron antes de la fecha de destete)
+      // Solo considerar lechones de los partos en el rango de fechas
+      const deadBeforeWeaning = piglets.filter(p => {
+        // Solo considerar lechones de los partos en análisis
+        if (!birthIds.includes(p.birth_id)) return false;
+        
+        // Solo considerar lechones que nacieron vivos
+        if (p.birth_status !== 'vivo') return false;
+        
+        // Si el lechón está muerto
+        if (p.current_status === 'muerto') {
+          // Si nunca fue destetado (weaning_date es null), entonces murió pre-destete
+          if (!p.weaning_date) return true;
+          
+          // Si tiene fecha de muerte y fecha de destete, verificar que murió antes del destete
+          if (p.death_date && new Date(p.death_date) < new Date(p.weaning_date)) return true;
+        }
+        
+        return false;
+      }).length;
       kpis.preWeaningMortality = totalBornAlive > 0 ? (deadBeforeWeaning / totalBornAlive) * 100 : 0;
 
       // Tasa de Abortos
@@ -492,14 +518,19 @@ const reportController = {
               new Date(b.birth_date) - new Date(a.birth_date)
             )[0];
             
-            // Calcular días desde el parto (asumiendo destete ~21 días después)
-            const weaningDate = new Date(lastBirth.birth_date);
-            weaningDate.setDate(weaningDate.getDate() + 21); // Destete estándar a 21 días
+            // Usar expected_weaning_date si existe, sino asumir 21 días después del parto
+            let weaningDate;
+            if (lastBirth.expected_weaning_date) {
+              weaningDate = new Date(lastBirth.expected_weaning_date);
+            } else {
+              weaningDate = new Date(lastBirth.birth_date);
+              weaningDate.setDate(weaningDate.getDate() + 21); // Destete estándar a 21 días
+            }
             
             const serviceDate = new Date(service.service_date);
             const daysInterval = (serviceDate - weaningDate) / (1000 * 60 * 60 * 24);
             
-            if (daysInterval >= 0 && daysInterval < 60) { // Validar rangos razonables
+            if (daysInterval >= 0 && daysInterval < 90) { // Validar rangos razonables (aumentado a 90 días)
               weanToServiceIntervals.push(daysInterval);
             }
           }
@@ -525,13 +556,19 @@ const reportController = {
               new Date(b.birth_date) - new Date(a.birth_date)
             )[0];
             
-            const weaningDate = new Date(lastBirth.birth_date);
-            weaningDate.setDate(weaningDate.getDate() + 21);
+            // Usar expected_weaning_date si existe, sino asumir 21 días después del parto
+            let weaningDate;
+            if (lastBirth.expected_weaning_date) {
+              weaningDate = new Date(lastBirth.expected_weaning_date);
+            } else {
+              weaningDate = new Date(lastBirth.birth_date);
+              weaningDate.setDate(weaningDate.getDate() + 21);
+            }
             
             const heatDate = new Date(heat.heat_date);
             const daysInterval = (heatDate - weaningDate) / (1000 * 60 * 60 * 24);
             
-            if (daysInterval >= 0 && daysInterval < 30) {
+            if (daysInterval >= 0 && daysInterval < 60) { // Validar rangos razonables
               weanToHeatIntervals.push(daysInterval);
             }
           }
@@ -545,7 +582,14 @@ const reportController = {
       // Días No Productivos (días entre destete y siguiente servicio efectivo)
       if (kpis.weanToServiceInterval) {
         kpis.nonProductiveDays = kpis.weanToServiceInterval;
+      } else {
+        kpis.nonProductiveDays = 0;
       }
+
+      // Inicializar indicadores temporales en 0 si no se calcularon
+      if (!kpis.weanToServiceInterval) kpis.weanToServiceInterval = 0;
+      if (!kpis.weanToHeatInterval) kpis.weanToHeatInterval = 0;
+      if (!kpis.farrowingInterval) kpis.farrowingInterval = 0;
 
       // Productividad Anual
       // Calcular para un año completo si hay suficientes datos
@@ -575,8 +619,18 @@ const reportController = {
             p.weaning_date && new Date(p.weaning_date) >= oneYearAgo
           ).length;
           kpis.weanedPerSowPerYear = weanedLastYear / activeSowsCount;
+        } else {
+          // Si no hay cerdas activas, inicializar en 0
+          kpis.farrowingsPerSowPerYear = 0;
+          kpis.pigletsPerSowPerYear = 0;
+          kpis.weanedPerSowPerYear = 0;
         }
       }
+
+      // Asegurar que todos los KPIs tengan valores numéricos (no undefined)
+      if (!kpis.farrowingsPerSowPerYear) kpis.farrowingsPerSowPerYear = 0;
+      if (!kpis.pigletsPerSowPerYear) kpis.pigletsPerSowPerYear = 0;
+      if (!kpis.weanedPerSowPerYear) kpis.weanedPerSowPerYear = 0;
 
       res.json({
         success: true,

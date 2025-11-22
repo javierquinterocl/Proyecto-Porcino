@@ -24,7 +24,7 @@ const heatStatusJob = cron.schedule('0 2 * * *', async () => {
   }
 }, {
   scheduled: false, // No iniciar automáticamente
-  timezone: "America/Santiago" // Ajusta a tu zona horaria
+  timezone: "America/Bogota"
 });
 
 /**

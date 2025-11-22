@@ -291,40 +291,58 @@ EXECUTE FUNCTION calculate_piglet_age();
 -- ✓ Actualiza last_weaning_date de la CERDA
 -- ============================================================================
 
--- TRIGGER NUEVO
+-- TRIGGER MEJORADO
 -- Actualizar estado de cerda cuando se destetan lechones
 CREATE OR REPLACE FUNCTION update_sow_status_on_weaning()
 RETURNS TRIGGER AS $$
 DECLARE
   all_weaned BOOLEAN;
   birth_sow_id INTEGER;
+  has_piglets BOOLEAN;
+  latest_weaning_date DATE;
 BEGIN
-  -- Solo ejecutar si se está actualizando el weaning_date
-  IF NEW.weaning_date IS NOT NULL AND (OLD.weaning_date IS NULL OR OLD.weaning_date != NEW.weaning_date) THEN
+  -- Solo ejecutar si se está actualizando el weaning_date o el current_status a 'destetado'
+  IF (NEW.weaning_date IS NOT NULL AND (OLD.weaning_date IS NULL OR OLD.weaning_date != NEW.weaning_date))
+     OR (NEW.current_status = 'destetado' AND OLD.current_status != 'destetado') THEN
     
     -- Obtener el sow_id del birth asociado
     SELECT sow_id INTO birth_sow_id
     FROM births
     WHERE id = NEW.birth_id;
     
+    -- Verificar si este parto tiene lechones registrados
+    SELECT EXISTS (
+      SELECT 1 
+      FROM piglets p
+      WHERE p.birth_id = NEW.birth_id
+        AND p.birth_status = 'vivo'
+    ) INTO has_piglets;
+    
     -- Verificar si todos los lechones vivos de este parto ya fueron destetados
     SELECT NOT EXISTS (
       SELECT 1 
       FROM piglets p
-      INNER JOIN births b ON p.birth_id = b.id
-      WHERE b.sow_id = birth_sow_id
-        AND b.id = NEW.birth_id
+      WHERE p.birth_id = NEW.birth_id
         AND p.birth_status = 'vivo'
         AND p.current_status = 'lactante'
-        AND p.weaning_date IS NULL
+        AND (p.weaning_date IS NULL OR p.current_status != 'destetado')
     ) INTO all_weaned;
     
-    -- Si todos fueron destetados, actualizar estado de la cerda
-    IF all_weaned THEN
+    -- Si todos fueron destetados o no hay lechones registrados, actualizar estado de la cerda
+    IF all_weaned OR NOT has_piglets THEN
+      -- Obtener la fecha de destete más reciente (o usar la del trigger si es la única)
+      SELECT COALESCE(MAX(p.weaning_date), NEW.weaning_date, CURRENT_DATE)
+      INTO latest_weaning_date
+      FROM piglets p
+      WHERE p.birth_id = NEW.birth_id
+        AND p.birth_status = 'vivo'
+        AND p.weaning_date IS NOT NULL;
+      
       UPDATE sows 
       SET 
         reproductive_status = 'vacia',
-        last_weaning_date = NEW.weaning_date
+        last_weaning_date = latest_weaning_date,
+        updated_at = NOW()
       WHERE id = birth_sow_id;
     END IF;
   END IF;

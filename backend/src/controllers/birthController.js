@@ -2,6 +2,7 @@ const birthModel = require('../models/birthModel');
 const sowModel = require('../models/sowModel');
 const boarModel = require('../models/boarModel');
 const pregnancyModel = require('../models/pregnancyModel');
+const weaningStatusJob = require('../jobs/weaningStatusJob');
 
 const birthController = {
   // GET /api/births - Obtener todos los partos con filtros opcionales
@@ -588,6 +589,58 @@ const birthController = {
       res.status(500).json({
         success: false,
         message: 'Error al eliminar parto',
+        error: error.message
+      });
+    }
+  },
+
+  // POST /api/births/:id/wean - Destetar camada completa manualmente
+  weanLitter: async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Verificar que el parto existe
+      const existingBirth = await birthModel.getById(id);
+      if (!existingBirth) {
+        return res.status(404).json({
+          success: false,
+          message: 'Parto no encontrado'
+        });
+      }
+
+      // Procesar el destete
+      const result = await weaningStatusJob.processSpecificBirth(id);
+      
+      res.json({
+        success: true,
+        message: `Camada destetada exitosamente. ${result.pigletsWeaned} lechones actualizados.`,
+        data: result
+      });
+    } catch (error) {
+      console.error('Error al destetar camada:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al destetar camada',
+        error: error.message
+      });
+    }
+  },
+
+  // POST /api/births/process-weaning - Procesar todos los destetes pendientes (automático)
+  processAllWeaning: async (req, res) => {
+    try {
+      const result = await weaningStatusJob.processWeaningDates();
+      
+      res.json({
+        success: true,
+        message: `Proceso completado. ${result.updated.length} cerdas destetadas automáticamente.`,
+        data: result
+      });
+    } catch (error) {
+      console.error('Error al procesar destetes automáticos:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al procesar destetes automáticos',
         error: error.message
       });
     }

@@ -119,6 +119,44 @@ export const exportReproductorsToPDF = (data) => {
     yPos = doc.lastAutoTable.finalY + 10;
   }
   
+  // SECCIÓN: INDICADORES PRODUCTIVOS TOTALES (sumatorias de todas las cerdas)
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 152, 0); // Naranja
+  doc.text('Indicadores Productivos Totales', REPORT_CONFIG.margin, yPos);
+  yPos += 8;
+  
+  // Calcular sumatorias de indicadores productivos
+  const totalParities = data.sows.totalParities || 0;
+  const totalPigletsBorn = data.sows.totalPigletsBorn || 0;
+  const totalPigletsAlive = data.sows.totalPigletsAlive || 0;
+  const totalPigletsDead = data.sows.totalPigletsDead || 0;
+  const totalAbortions = data.sows.totalAbortions || 0;
+  const avgPigletsAlive = data.sows.active > 0 ? (totalPigletsAlive / totalParities).toFixed(2) : '0.00';
+  
+  autoTable(doc, {
+    startY: yPos,
+    head: [['Indicador Productivo', 'Valor Total']],
+    body: [
+      ['Total de Partos (todas las cerdas)', totalParities.toString()],
+      ['Total Lechones Nacidos', totalPigletsBorn.toString()],
+      ['Total Lechones Vivos', totalPigletsAlive.toString()],
+      ['Total Lechones Muertos', totalPigletsDead.toString()],
+      ['Promedio General Lechones Vivos/Parto', avgPigletsAlive],
+      ['Total Abortos', totalAbortions.toString()],
+    ],
+    theme: 'striped',
+    headStyles: { fillColor: [255, 152, 0] }, // Naranja
+    bodyStyles: {
+      fillColor: [255, 248, 240]
+    },
+    alternateRowStyles: {
+      fillColor: [255, 243, 224]
+    },
+    margin: { left: REPORT_CONFIG.margin, right: REPORT_CONFIG.margin },
+  });
+  yPos = doc.lastAutoTable.finalY + 10;
+  
   // Nueva página para verracos y lechones
   doc.addPage();
   yPos = 50;
@@ -207,6 +245,14 @@ export const exportReproductorsToExcel = (data) => {
   ];
   
   if (data.sows) {
+    // Calcular sumatorias de indicadores productivos
+    const totalParities = data.sows.totalParities || 0;
+    const totalPigletsBorn = data.sows.totalPigletsBorn || 0;
+    const totalPigletsAlive = data.sows.totalPigletsAlive || 0;
+    const totalPigletsDead = data.sows.totalPigletsDead || 0;
+    const totalAbortions = data.sows.totalAbortions || 0;
+    const avgPigletsAlive = totalParities > 0 ? (totalPigletsAlive / totalParities).toFixed(2) : '0.00';
+    
     sowsData.push(
       ['DETALLES ADICIONALES'],
       ['Indicador', 'Valor'],
@@ -216,6 +262,15 @@ export const exportReproductorsToExcel = (data) => {
       ['Lechones por Cerda', data.sows.avgPigletsPerSow?.toFixed(1) || 'N/A'],
       ['Cerdas de 1er Parto', data.sows.firstParity || 0],
       ['Cerdas de 2+ Partos', data.sows.multiparous || 0],
+      [],
+      ['INDICADORES PRODUCTIVOS TOTALES'],
+      ['Indicador Productivo', 'Valor Total'],
+      ['Total de Partos (todas las cerdas)', totalParities],
+      ['Total Lechones Nacidos', totalPigletsBorn],
+      ['Total Lechones Vivos', totalPigletsAlive],
+      ['Total Lechones Muertos', totalPigletsDead],
+      ['Promedio General Lechones Vivos/Parto', avgPigletsAlive],
+      ['Total Abortos', totalAbortions],
       []
     );
   }
@@ -509,15 +564,15 @@ export const exportKPIsToPDF = (data, sowFilter = null) => {
   yPos += 8;
   
   const kpisBody = [
-    ['Tasa de Fertilidad', `${data.fertilityRate?.toFixed(1) || 0}%`, '≥ 85%', data.fertilityRate >= 85 ? 'SI' : 'NO'],
-    ['Tasa de Concepción', `${data.conceptionRate?.toFixed(1) || 0}%`, '≥ 90%', data.conceptionRate >= 90 ? 'SI' : 'NO'],
-    ['Tasa de Partos', `${data.farrowingRate?.toFixed(1) || 0}%`, '≥ 82%', data.farrowingRate >= 82 ? 'SI' : 'NO'],
-    ['Lechones Nacidos Vivos/Parto', data.avgBornAlive?.toFixed(2) || 'N/A', '≥ 11', (data.avgBornAlive >= 11) ? 'SI' : 'NO'],
-    ['Lechones Nacidos Totales/Parto', data.avgTotalBorn?.toFixed(2) || 'N/A', '≥ 12', (data.avgTotalBorn >= 12) ? 'SI' : 'NO'],
-    ['Lechones Destetados/Parto', data.avgWeaned?.toFixed(2) || 'N/A', '≥ 10', (data.avgWeaned >= 10) ? 'SI' : 'NO'],
-    ['Mortalidad Pre-Destete', `${data.preWeaningMortality?.toFixed(1) || 0}%`, '≤ 12%', (data.preWeaningMortality <= 12) ? 'SI' : 'NO'],
-    ['Mortalidad al Nacer', `${data.birthMortality?.toFixed(1) || 0}%`, '≤ 8%', (data.birthMortality <= 8) ? 'SI' : 'NO'],
-    ['Tasa de Abortos', `${data.abortionRate?.toFixed(1) || 0}%`, '≤ 3%', (data.abortionRate <= 3) ? 'SI' : 'NO'],
+    ['Tasa de Fertilidad', `${data.fertilityRate?.toFixed(1) || 0}%`, 'Mayor o igual a 85%', data.fertilityRate >= 85 ? 'SI' : 'NO'],
+    ['Tasa de Concepcion', `${data.conceptionRate?.toFixed(1) || 0}%`, 'Mayor o igual a 90%', data.conceptionRate >= 90 ? 'SI' : 'NO'],
+    ['Tasa de Partos', `${data.farrowingRate?.toFixed(1) || 0}%`, 'Mayor o igual a 82%', data.farrowingRate >= 82 ? 'SI' : 'NO'],
+    ['Lechones Nacidos Vivos/Parto', data.avgBornAlive?.toFixed(2) || '0.00', 'Mayor o igual a 11', (data.avgBornAlive >= 11) ? 'SI' : 'NO'],
+    ['Lechones Nacidos Totales/Parto', data.avgTotalBorn?.toFixed(2) || '0.00', 'Mayor o igual a 12', (data.avgTotalBorn >= 12) ? 'SI' : 'NO'],
+    ['Lechones Destetados/Parto', data.avgWeaned?.toFixed(2) || '0.00', 'Mayor o igual a 10', (data.avgWeaned >= 10) ? 'SI' : 'NO'],
+    ['Mortalidad Pre-Destete', `${data.preWeaningMortality?.toFixed(1) || 0}%`, 'Menor o igual a 12%', (data.preWeaningMortality <= 12) ? 'SI' : 'NO'],
+    ['Mortalidad al Nacer', `${data.birthMortality?.toFixed(1) || 0}%`, 'Menor o igual a 8%', (data.birthMortality <= 8) ? 'SI' : 'NO'],
+    ['Tasa de Abortos', `${data.abortionRate?.toFixed(1) || 0}%`, 'Menor o igual a 3%', (data.abortionRate <= 3) ? 'SI' : 'NO'],
   ];
   
   autoTable(doc, {
@@ -554,10 +609,10 @@ export const exportKPIsToPDF = (data, sowFilter = null) => {
     startY: yPos,
     head: [['Indicador', 'Valor', 'Objetivo']],
     body: [
-      ['Intervalo Destete-Celo (días)', data.weanToHeatInterval?.toFixed(1) || 'N/A', '≤ 7 días'],
-      ['Intervalo Destete-Servicio (días)', data.weanToServiceInterval?.toFixed(1) || 'N/A', '≤ 10 días'],
-      ['Intervalo entre Partos (días)', data.farrowingInterval?.toFixed(1) || 'N/A', '≤ 150 días'],
-      ['Días No Productivos', data.nonProductiveDays?.toFixed(1) || 'N/A', '≤ 30 días'],
+      ['Intervalo Destete-Celo (dias)', data.weanToHeatInterval?.toFixed(1) || '0.0', 'Menor o igual a 7 dias'],
+      ['Intervalo Destete-Servicio (dias)', data.weanToServiceInterval?.toFixed(1) || '0.0', 'Menor o igual a 10 dias'],
+      ['Intervalo entre Partos (dias)', data.farrowingInterval?.toFixed(1) || '0.0', 'Menor o igual a 150 dias'],
+      ['Dias No Productivos', data.nonProductiveDays?.toFixed(1) || '0.0', 'Menor o igual a 30 dias'],
     ],
     theme: 'striped',
     headStyles: { fillColor: REPORT_CONFIG.secondaryColor },
@@ -582,9 +637,9 @@ export const exportKPIsToPDF = (data, sowFilter = null) => {
     startY: yPos,
     head: [['Indicador', 'Valor', 'Objetivo']],
     body: [
-      ['Partos/Cerda/Año', data.farrowingsPerSowPerYear?.toFixed(2) || 'N/A', '≥ 2.3'],
-      ['Lechones Nacidos Vivos/Cerda/Año', data.pigletsPerSowPerYear?.toFixed(1) || 'N/A', '≥ 25'],
-      ['Lechones Destetados/Cerda/Año', data.weanedPerSowPerYear?.toFixed(1) || 'N/A', '≥ 23'],
+      ['Partos/Cerda/Anio', data.farrowingsPerSowPerYear?.toFixed(2) || '0.00', 'Mayor o igual a 2.3'],
+      ['Lechones Nacidos Vivos/Cerda/Anio', data.pigletsPerSowPerYear?.toFixed(1) || '0.0', 'Mayor o igual a 25'],
+      ['Lechones Destetados/Cerda/Anio', data.weanedPerSowPerYear?.toFixed(1) || '0.0', 'Mayor o igual a 23'],
     ],
     theme: 'striped',
     headStyles: { fillColor: REPORT_CONFIG.secondaryColor },
@@ -658,28 +713,28 @@ export const exportKPIsToExcel = (data, sowFilter = null) => {
     [],
     ['INDICADORES CLAVE DE RENDIMIENTO'],
     ['KPI', 'Valor Actual', 'Objetivo', 'Cumple'],
-    ['Tasa de Fertilidad', `${data.fertilityRate?.toFixed(1) || 0}%`, '≥ 85%', data.fertilityRate >= 85 ? 'SI' : 'NO'],
-    ['Tasa de Concepción', `${data.conceptionRate?.toFixed(1) || 0}%`, '≥ 90%', data.conceptionRate >= 90 ? 'SI' : 'NO'],
-    ['Tasa de Partos', `${data.farrowingRate?.toFixed(1) || 0}%`, '≥ 82%', data.farrowingRate >= 82 ? 'SI' : 'NO'],
-    ['Lechones Nacidos Vivos/Parto', data.avgBornAlive?.toFixed(2) || 'N/A', '≥ 11', (data.avgBornAlive >= 11) ? 'SI' : 'NO'],
-    ['Lechones Nacidos Totales/Parto', data.avgTotalBorn?.toFixed(2) || 'N/A', '≥ 12', (data.avgTotalBorn >= 12) ? 'SI' : 'NO'],
-    ['Lechones Destetados/Parto', data.avgWeaned?.toFixed(2) || 'N/A', '≥ 10', (data.avgWeaned >= 10) ? 'SI' : 'NO'],
-    ['Mortalidad Pre-Destete', `${data.preWeaningMortality?.toFixed(1) || 0}%`, '≤ 12%', (data.preWeaningMortality <= 12) ? 'SI' : 'NO'],
-    ['Mortalidad al Nacer', `${data.birthMortality?.toFixed(1) || 0}%`, '≤ 8%', (data.birthMortality <= 8) ? 'SI' : 'NO'],
-    ['Tasa de Abortos', `${data.abortionRate?.toFixed(1) || 0}%`, '≤ 3%', (data.abortionRate <= 3) ? 'SI' : 'NO'],
+    ['Tasa de Fertilidad', `${data.fertilityRate?.toFixed(1) || 0}%`, 'Mayor o igual a 85%', data.fertilityRate >= 85 ? 'SI' : 'NO'],
+    ['Tasa de Concepcion', `${data.conceptionRate?.toFixed(1) || 0}%`, 'Mayor o igual a 90%', data.conceptionRate >= 90 ? 'SI' : 'NO'],
+    ['Tasa de Partos', `${data.farrowingRate?.toFixed(1) || 0}%`, 'Mayor o igual a 82%', data.farrowingRate >= 82 ? 'SI' : 'NO'],
+    ['Lechones Nacidos Vivos/Parto', data.avgBornAlive?.toFixed(2) || '0.00', 'Mayor o igual a 11', (data.avgBornAlive >= 11) ? 'SI' : 'NO'],
+    ['Lechones Nacidos Totales/Parto', data.avgTotalBorn?.toFixed(2) || '0.00', 'Mayor o igual a 12', (data.avgTotalBorn >= 12) ? 'SI' : 'NO'],
+    ['Lechones Destetados/Parto', data.avgWeaned?.toFixed(2) || '0.00', 'Mayor o igual a 10', (data.avgWeaned >= 10) ? 'SI' : 'NO'],
+    ['Mortalidad Pre-Destete', `${data.preWeaningMortality?.toFixed(1) || 0}%`, 'Menor o igual a 12%', (data.preWeaningMortality <= 12) ? 'SI' : 'NO'],
+    ['Mortalidad al Nacer', `${data.birthMortality?.toFixed(1) || 0}%`, 'Menor o igual a 8%', (data.birthMortality <= 8) ? 'SI' : 'NO'],
+    ['Tasa de Abortos', `${data.abortionRate?.toFixed(1) || 0}%`, 'Menor o igual a 3%', (data.abortionRate <= 3) ? 'SI' : 'NO'],
     [],
     ['INDICADORES TEMPORALES'],
     ['Indicador', 'Valor', 'Objetivo'],
-    ['Intervalo Destete-Celo (días)', data.weanToHeatInterval?.toFixed(1) || 'N/A', '≤ 7 días'],
-    ['Intervalo Destete-Servicio (días)', data.weanToServiceInterval?.toFixed(1) || 'N/A', '≤ 10 días'],
-    ['Intervalo entre Partos (días)', data.farrowingInterval?.toFixed(1) || 'N/A', '≤ 150 días'],
-    ['Días No Productivos', data.nonProductiveDays?.toFixed(1) || 'N/A', '≤ 30 días'],
+    ['Intervalo Destete-Celo (dias)', data.weanToHeatInterval?.toFixed(1) || '0.0', 'Menor o igual a 7 dias'],
+    ['Intervalo Destete-Servicio (dias)', data.weanToServiceInterval?.toFixed(1) || '0.0', 'Menor o igual a 10 dias'],
+    ['Intervalo entre Partos (dias)', data.farrowingInterval?.toFixed(1) || '0.0', 'Menor o igual a 150 dias'],
+    ['Dias No Productivos', data.nonProductiveDays?.toFixed(1) || '0.0', 'Menor o igual a 30 dias'],
     [],
     ['PRODUCTIVIDAD ANUAL'],
     ['Indicador', 'Valor', 'Objetivo'],
-    ['Partos/Cerda/Año', data.farrowingsPerSowPerYear?.toFixed(2) || 'N/A', '≥ 2.3'],
-    ['Lechones Nacidos Vivos/Cerda/Año', data.pigletsPerSowPerYear?.toFixed(1) || 'N/A', '≥ 25'],
-    ['Lechones Destetados/Cerda/Año', data.weanedPerSowPerYear?.toFixed(1) || 'N/A', '≥ 23'],
+    ['Partos/Cerda/Anio', data.farrowingsPerSowPerYear?.toFixed(2) || '0.00', 'Mayor o igual a 2.3'],
+    ['Lechones Nacidos Vivos/Cerda/Anio', data.pigletsPerSowPerYear?.toFixed(1) || '0.0', 'Mayor o igual a 25'],
+    ['Lechones Destetados/Cerda/Anio', data.weanedPerSowPerYear?.toFixed(1) || '0.0', 'Mayor o igual a 23'],
   ];
   
   const ws1 = XLSX.utils.aoa_to_sheet(kpisData);

@@ -176,14 +176,39 @@ export default function PregnanciesList() {
 
   // Utilidades
   const getStatusBadge = (status) => {
-    const variants = {
-      'en curso': 'default',
-      'finalizada parto': 'secondary',
-      'finalizada aborto': 'destructive',
-      'no confirmada': 'outline'
+    // Si el status está vacío o es inválido, mostrar un badge de error
+    if (!status || status.trim() === '') {
+      return (
+        <Badge variant="outline" className="border-orange-500 text-orange-700">
+          Sin estado
+        </Badge>
+      );
+    }
+
+    // Mapeo de estilos personalizados para cada estado
+    const statusStyles = {
+      'en curso': {
+        variant: 'default',
+        className: 'bg-blue-100 text-blue-800 border-blue-300'
+      },
+      'finalizada parto': {
+        variant: 'secondary',
+        className: 'bg-green-100 text-green-800 border-green-300'
+      },
+      'finalizada aborto': {
+        variant: 'destructive',
+        className: 'bg-red-100 text-red-800 border-red-300 font-medium'
+      },
+      'no confirmada': {
+        variant: 'outline',
+        className: 'bg-gray-100 text-gray-800 border-gray-300'
+      }
     };
+    
+    const style = statusStyles[status] || { variant: 'default', className: '' };
+    
     return (
-      <Badge variant={variants[status] || 'default'}>
+      <Badge variant={style.variant} className={`whitespace-nowrap ${style.className}`}>
         {status}
       </Badge>
     );

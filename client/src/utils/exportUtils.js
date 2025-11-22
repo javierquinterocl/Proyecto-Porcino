@@ -226,6 +226,49 @@ export const exportSowToPDF = (sow) => {
     margin: { left: 15, right: 15 },
   });
   
+  yPosition = doc.lastAutoTable.finalY + 10;
+  
+  // Verificar si necesitamos una nueva página
+  if (yPosition > 200) {
+    doc.addPage();
+    yPosition = 20;
+  }
+  
+  // Sección 7: Indicadores Productivos (datos actualizados automáticamente por triggers)
+  doc.setFillColor(255, 237, 213); // Fondo naranja claro para destacar
+  doc.rect(10, yPosition, 190, 8, 'F');
+  doc.setFont(undefined, 'bold');
+  doc.setTextColor(204, 85, 0); // Texto naranja oscuro
+  doc.text('INDICADORES PRODUCTIVOS', 15, yPosition + 6);
+  doc.setTextColor(0, 0, 0); // Resetear color
+  yPosition += 12;
+  
+  autoTable(doc, {
+    startY: yPosition,
+    head: [['Indicador', 'Valor']],
+    body: [
+      ['Número de Partos', (sow.parity_count || 0).toString()],
+      ['Total Lechones Nacidos', (sow.total_piglets_born || 0).toString()],
+      ['Total Lechones Vivos', (sow.total_piglets_alive || 0).toString()],
+      ['Total Lechones Muertos', (sow.total_piglets_dead || 0).toString()],
+      ['Promedio Lechones Vivos/Parto', sow.avg_piglets_alive ? parseFloat(sow.avg_piglets_alive).toFixed(2) : '0.00'],
+      ['Total Abortos', (sow.total_abortions || 0).toString()],
+      ['Último Servicio', formatDate(sow.last_service_date)],
+      ['Último Parto', formatDate(sow.last_parturition_date)],
+      ['Fecha Esperada de Parto', formatDate(sow.expected_farrowing_date)],
+      ['Último Destete', formatDate(sow.last_weaning_date)],
+    ],
+    theme: 'striped',
+    headStyles: { fillColor: [255, 152, 0] }, // Naranja
+    bodyStyles: {
+      fillColor: [255, 248, 240] // Fondo muy claro naranja
+    },
+    alternateRowStyles: {
+      fillColor: [255, 243, 224] // Alternado naranja claro
+    },
+    margin: { left: 15, right: 15 },
+  });
+  
   // Pie de página mejorado
   const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
@@ -325,7 +368,7 @@ export const exportAllSowsToPDF = (sows) => {
     doc.text(`Generado el: ${currentDate}`, pageWidth / 2, 32, { align: 'center' });
     doc.text(`Generado por: ${userName}`, pageWidth / 2, 37, { align: 'center' });
     
-    // Preparar datos para la tabla con TODOS los campos
+    // Preparar datos para la tabla con TODOS los campos incluyendo indicadores productivos
     const tableData = sows.map((sow, index) => [
       index + 1, // Número
       sow.ear_tag || 'N/A',
@@ -346,7 +389,12 @@ export const exportAllSowsToPDF = (sows) => {
       sow.min_service_weight || '-',
       sow.body_condition || '-',
       formatDate(sow.last_weight_date),
-      sow.parity_count || '0'
+      sow.parity_count || '0',
+      sow.total_piglets_born || '0',
+      sow.total_piglets_alive || '0',
+      sow.total_piglets_dead || '0',
+      sow.avg_piglets_alive ? parseFloat(sow.avg_piglets_alive).toFixed(2) : '0.00',
+      sow.total_abortions || '0'
     ]);
     
     // Resetear color de texto
@@ -374,52 +422,62 @@ export const exportAllSowsToPDF = (sows) => {
         'Peso Mín. (kg)',
         'Cond. Corp.',
         'F. Pesaje',
-        'Partos'
+        'Partos',
+        'Lech. Nac.',
+        'Lech. Vivos',
+        'Lech. Muert.',
+        'Prom. Vivos',
+        'Abortos'
       ]],
       body: tableData,
       theme: 'striped',
       styles: {
-        fontSize: 7,
-        cellPadding: 2,
+        fontSize: 6.5,
+        cellPadding: 1.5,
         overflow: 'linebreak',
         halign: 'center',
         valign: 'middle'
       },
       headStyles: { 
         fillColor: primaryColor,
-        fontSize: 7,
+        fontSize: 6.5,
         fontStyle: 'bold',
         halign: 'center',
         textColor: [255, 255, 255]
       },
       bodyStyles: { 
-        fontSize: 6.5,
+        fontSize: 6,
         textColor: [50, 50, 50]
       },
       alternateRowStyles: { 
         fillColor: [252, 245, 248] // Rosa muy claro
       },
       columnStyles: {
-        0: { cellWidth: 8, halign: 'center' }, // #
-        1: { cellWidth: 15, fontStyle: 'bold' }, // Arete
-        2: { cellWidth: 12 }, // Alias
-        3: { cellWidth: 14 }, // Raza
-        4: { cellWidth: 12 }, // Línea
-        5: { cellWidth: 8 }, // Gen
-        6: { cellWidth: 12 }, // Padre
-        7: { cellWidth: 12 }, // Madre
-        8: { cellWidth: 16 }, // F. Nac
-        9: { cellWidth: 16 }, // F. Entrada
-        10: { cellWidth: 12 }, // Origen
-        11: { cellWidth: 15 }, // Granja
-        12: { cellWidth: 14 }, // Ubicación
-        13: { cellWidth: 12 }, // Estado
-        14: { cellWidth: 14 }, // Est. Reprod
-        15: { cellWidth: 10 }, // Peso
-        16: { cellWidth: 10 }, // Peso Mín
-        17: { cellWidth: 10 }, // Cond. Corp
-        18: { cellWidth: 16 }, // F. Pesaje
-        19: { cellWidth: 8 } // Partos
+        0: { cellWidth: 6, halign: 'center' }, // #
+        1: { cellWidth: 13, fontStyle: 'bold' }, // Arete
+        2: { cellWidth: 10 }, // Alias
+        3: { cellWidth: 12 }, // Raza
+        4: { cellWidth: 10 }, // Línea
+        5: { cellWidth: 7 }, // Gen
+        6: { cellWidth: 10 }, // Padre
+        7: { cellWidth: 10 }, // Madre
+        8: { cellWidth: 14 }, // F. Nac
+        9: { cellWidth: 14 }, // F. Entrada
+        10: { cellWidth: 10 }, // Origen
+        11: { cellWidth: 13 }, // Granja
+        12: { cellWidth: 12 }, // Ubicación
+        13: { cellWidth: 10 }, // Estado
+        14: { cellWidth: 12 }, // Est. Reprod
+        15: { cellWidth: 9 }, // Peso
+        16: { cellWidth: 9 }, // Peso Mín
+        17: { cellWidth: 9 }, // Cond. Corp
+        18: { cellWidth: 14 }, // F. Pesaje
+        19: { cellWidth: 7, fillColor: [255, 243, 224] }, // Partos - destacado
+        20: { cellWidth: 9, fillColor: [255, 243, 224] }, // Lech. Nac. - destacado
+        21: { cellWidth: 9, fillColor: [255, 243, 224] }, // Lech. Vivos - destacado
+        22: { cellWidth: 9, fillColor: [255, 243, 224] }, // Lech. Muert. - destacado
+        23: { cellWidth: 10, fillColor: [255, 243, 224] }, // Prom. Vivos - destacado
+        24: { cellWidth: 7, fillColor: [255, 243, 224] } // Abortos - destacado
       },
       margin: { left: 5, right: 5, top: 45, bottom: 20 },
       didDrawPage: function() {
@@ -535,6 +593,18 @@ export const exportSowToExcel = (sow) => {
       ['Condición Corporal', sow.body_condition || 'N/A'],
       ['Fecha Último Pesaje', formatDate(sow.last_weight_date)],
       [''],
+      ['INDICADORES PRODUCTIVOS'],
+      ['Número de Partos', (sow.parity_count || 0).toString()],
+      ['Total Lechones Nacidos', (sow.total_piglets_born || 0).toString()],
+      ['Total Lechones Vivos', (sow.total_piglets_alive || 0).toString()],
+      ['Total Lechones Muertos', (sow.total_piglets_dead || 0).toString()],
+      ['Promedio Lechones Vivos/Parto', sow.avg_piglets_alive ? parseFloat(sow.avg_piglets_alive).toFixed(2) : '0.00'],
+      ['Total Abortos', (sow.total_abortions || 0).toString()],
+      ['Último Servicio', formatDate(sow.last_service_date)],
+      ['Último Parto', formatDate(sow.last_parturition_date)],
+      ['Fecha Esperada de Parto', formatDate(sow.expected_farrowing_date)],
+      ['Último Destete', formatDate(sow.last_weaning_date)],
+      [''],
       ['REGISTRO'],
       ['Fecha de Creación', formatDate(sow.created_at)],
       ['Última Actualización', formatDate(sow.updated_at)],
@@ -624,11 +694,20 @@ export const exportAllSowsToExcel = (sows) => {
       'Condición Corporal',
       'Fecha Último Pesaje',
       'Número de Partos',
+      'Total Lechones Nacidos',
+      'Total Lechones Vivos',
+      'Total Lechones Muertos',
+      'Promedio Lechones Vivos/Parto',
+      'Total Abortos',
+      'Último Servicio',
+      'Último Parto',
+      'Fecha Esperada Parto',
+      'Último Destete',
       'Fecha Creación',
       'Última Actualización'
     ];
     
-    // Preparar datos con TODOS los campos
+    // Preparar datos con TODOS los campos incluyendo indicadores productivos
     const data = sows.map((sow, index) => [
       index + 1,
       sow.ear_tag || 'N/A',
@@ -651,6 +730,15 @@ export const exportAllSowsToExcel = (sows) => {
       sow.body_condition || '-',
       formatDate(sow.last_weight_date),
       sow.parity_count || '0',
+      sow.total_piglets_born || '0',
+      sow.total_piglets_alive || '0',
+      sow.total_piglets_dead || '0',
+      sow.avg_piglets_alive ? parseFloat(sow.avg_piglets_alive).toFixed(2) : '0.00',
+      sow.total_abortions || '0',
+      formatDate(sow.last_service_date),
+      formatDate(sow.last_parturition_date),
+      formatDate(sow.expected_farrowing_date),
+      formatDate(sow.last_weaning_date),
       formatDate(sow.created_at),
       formatDate(sow.updated_at)
     ]);
@@ -684,6 +772,15 @@ export const exportAllSowsToExcel = (sows) => {
       { wch: 18 }, // Condición Corporal
       { wch: 20 }, // Fecha Pesaje
       { wch: 12 }, // Partos
+      { wch: 20 }, // Total Lechones Nacidos
+      { wch: 20 }, // Total Lechones Vivos
+      { wch: 20 }, // Total Lechones Muertos
+      { wch: 25 }, // Promedio Lechones Vivos/Parto
+      { wch: 15 }, // Total Abortos
+      { wch: 20 }, // Último Servicio
+      { wch: 20 }, // Último Parto
+      { wch: 22 }, // Fecha Esperada Parto
+      { wch: 20 }, // Último Destete
       { wch: 20 }, // Fecha Creación
       { wch: 20 }  // Última Actualización
     ];

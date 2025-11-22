@@ -23,4 +23,8 @@ router.patch('/:id', birthController.partialUpdate);
 // Ruta de eliminación
 router.delete('/:id', birthController.delete);
 
+// Rutas de destete
+router.post('/:id/wean', birthController.weanLitter);
+router.post('/process-weaning', birthController.processAllWeaning);
+
 module.exports = router;

@@ -35,8 +35,8 @@ const userController = {
 
       // Generar token
       const token = jwt.sign(
-        { 
-          id: newUser.id, 
+        {
+          id: newUser.id,
           email: newUser.email
         },
         process.env.JWT_SECRET,
@@ -102,8 +102,8 @@ const userController = {
 
       // Generar token
       const token = jwt.sign(
-        { 
-          id: user.id, 
+        {
+          id: user.id,
           email: user.email
         },
         process.env.JWT_SECRET,
@@ -135,7 +135,7 @@ const userController = {
   getMe: async (req, res) => {
     try {
       const user = await userModel.findById(req.user.id);
-      
+
       if (!user) {
         return res.status(404).json({
           success: false,
@@ -228,7 +228,16 @@ const userController = {
         }
       }
 
-      const updatedUser = await userModel.update(id, userData);
+      // Transformar datos del frontend (camelCase) a formato de base de datos (snake_case)
+      const dbUserData = {
+        first_name: userData.firstName || userData.first_name,
+        last_name: userData.lastName || userData.last_name,
+        phone: userData.phone,
+        email: userData.email,
+        is_active: userData.is_active !== undefined ? userData.is_active : existingUser.is_active
+      };
+
+      const updatedUser = await userModel.update(id, dbUserData);
 
       res.json({
         success: true,
@@ -261,7 +270,7 @@ const userController = {
 
       // Obtener usuario con contraseña
       const user = await userModel.findByEmail(req.user.email);
-      
+
       // Verificar contraseña actual
       const isPasswordValid = await userModel.verifyPassword(currentPassword, user.password);
       if (!isPasswordValid) {

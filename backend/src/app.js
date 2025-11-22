@@ -16,6 +16,7 @@ const reportRoutes = require('./routes/reportRoutes');
 
 // Importar y configurar jobs automáticos
 const { heatStatusJob } = require('./jobs/heatStatusJob');
+const { weaningStatusJob } = require('./jobs/weaningStatusJob');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -130,6 +131,8 @@ app.listen(PORT, () => {
   console.log('⏰ Iniciando jobs automáticos...');
   heatStatusJob.start();
   console.log('✅ Job de actualización de celos activado (se ejecuta diariamente a las 2:00 AM)');
+  weaningStatusJob.start();
+  console.log('✅ Job de destete automático activado (se ejecuta diariamente a las 3:00 AM)');
 });
 
 module.exports = app;
