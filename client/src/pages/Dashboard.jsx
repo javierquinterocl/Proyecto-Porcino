@@ -41,8 +41,8 @@ export default function Dashboard() {
         ]);
 
         // Calcular estadísticas de cerdas
-        const activeSows = sows.filter(s => s.status === 'Activa').length;
-        const pregnantSows = sows.filter(s => s.reproductive_status === 'Gestante').length;
+        const activeSows = sows.filter(s => s.status === 'activa').length;
+        const pregnantSows = sows.filter(s => s.reproductive_status === 'gestante').length;
         
         // Estadísticas por raza
         const breedCounts = {};
@@ -65,14 +65,14 @@ export default function Dashboard() {
           reproductiveStatusCounts[repStatus] = (reproductiveStatusCounts[repStatus] || 0) + 1;
         });
 
-        // Peso promedio (excluyendo nulos)
-        const sowsWithWeight = sows.filter(s => s.weight && s.weight > 0);
+        // Peso promedio (excluyendo nulos) - usar current_weight
+        const sowsWithWeight = sows.filter(s => s.current_weight && s.current_weight > 0);
         const averageWeight = sowsWithWeight.length > 0 
-          ? sowsWithWeight.reduce((sum, s) => sum + Number(s.weight), 0) / sowsWithWeight.length 
+          ? sowsWithWeight.reduce((sum, s) => sum + Number(s.current_weight), 0) / sowsWithWeight.length 
           : 0;
 
-        // Total de partos
-        const totalParturitions = sows.reduce((sum, s) => sum + (Number(s.parturitions) || 0), 0);
+        // Total de partos - usar parity_count
+        const totalParturitions = sows.reduce((sum, s) => sum + (Number(s.parity_count) || 0), 0);
 
         setStats({
           totalUsers: users?.length || 0,

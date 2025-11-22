@@ -6,6 +6,9 @@ const { authMiddleware, checkRole } = require('../middleware/authMiddleware');
 // Rutas públicas (sin autenticación)
 router.post('/register', userController.register);
 router.post('/login', userController.login);
+router.post('/forgot-password', userController.requestPasswordReset);
+router.post('/validate-reset-token', userController.validateResetToken);
+router.post('/reset-password', userController.resetPassword);
 
 // Rutas protegidas (requieren autenticación)
 router.get('/me', authMiddleware, userController.getMe);

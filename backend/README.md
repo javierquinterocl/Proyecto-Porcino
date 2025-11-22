@@ -5,6 +5,7 @@ Backend para gestión integral de porcicultura desarrollado con Express.js, Node
 ## 📋 Características
 
 - ✅ Autenticación JWT con roles (admin, técnico, usuario)
+- ✅ Recuperación de contraseña por email
 - ✅ CRUD completo de cerdas con validaciones
 - ✅ Gestión de usuarios con encriptación de contraseñas
 - ✅ Filtros avanzados para consultas
@@ -19,6 +20,7 @@ Backend para gestión integral de porcicultura desarrollado con Express.js, Node
 - **PostgreSQL** - Base de datos relacional
 - **JWT** - Autenticación basada en tokens
 - **Bcrypt** - Encriptación de contraseñas
+- **Nodemailer** - Envío de emails (recuperación de contraseña)
 - **dotenv** - Variables de entorno
 - **CORS** - Manejo de políticas de origen cruzado
 
@@ -86,13 +88,27 @@ DB_NAME=porcime
 
 # Servidor
 PORT=3000
+NODE_ENV=development
 
 # JWT
 JWT_SECRET=tu_clave_secreta_muy_segura_cambiar_en_produccion
 JWT_EXPIRES_IN=7d
+
+# Email (Recuperación de contraseña)
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=tu_correo@gmail.com
+EMAIL_PASS=tu_password_de_aplicacion
+EMAIL_FROM="Sistema Granme <tu_correo@gmail.com>"
+FRONTEND_URL=http://localhost:5173
 ```
 
-⚠️ **IMPORTANTE**: Cambiar `JWT_SECRET` en producción por una clave segura.
+⚠️ **IMPORTANTE**: 
+- Cambiar `JWT_SECRET` en producción por una clave segura
+- Para Gmail, crear un "App Password" en: https://myaccount.google.com/apppasswords
+- Si no configuras EMAIL, la funcionalidad estará disponible pero mostrará el token en consola (modo desarrollo)
+
+Ver `.env.example` para más detalles de configuración.
 
 ### 5. Iniciar el servidor
 
@@ -114,6 +130,9 @@ El servidor estará corriendo en: `http://localhost:3000`
 - `POST /api/auth/register` - Registrar usuario
 - `POST /api/auth/login` - Iniciar sesión
 - `GET /api/auth/me` - Obtener usuario actual (requiere token)
+- `POST /api/auth/forgot-password` - Solicitar recuperación de contraseña
+- `POST /api/auth/validate-reset-token` - Validar token de recuperación
+- `POST /api/auth/reset-password` - Resetear contraseña con token
 
 ### Usuarios (Admin)
 - `GET /api/users` - Listar todos los usuarios
@@ -290,6 +309,12 @@ const createSow = async () => {
 psql -U postgres -d porcime -f database.sql
 ```
 
+### Ejecutar migraciones
+```bash
+# Crear tabla de tokens de recuperación de contraseña
+psql -U postgres -d porcime -f migrations/create_password_reset_tokens.sql
+```
+
 ### Usuario por defecto
 - **Email**: admin@porcime.com
 - **Contraseña**: admin123
@@ -324,9 +349,11 @@ npm run dev     # Iniciar en modo desarrollo con nodemon
 
 - Contraseñas encriptadas con bcrypt (10 rounds)
 - Tokens JWT con expiración configurable
+- Tokens de recuperación de contraseña con expiración de 1 hora
 - Validación de roles en rutas protegidas
 - Validación de datos en base de datos con constraints
 - Variables de entorno para datos sensibles
+- Emails de notificación para cambios de contraseña
 
 ## 📄 Licencia
 

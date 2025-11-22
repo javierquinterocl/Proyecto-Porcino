@@ -35,33 +35,23 @@ export default function ForgotPasswordPage() {
         throw new Error("El formato del correo electrónico no es válido")
       }
 
-      console.log("Generando token de recuperación de contraseña...")
+      console.log("Solicitando recuperación de contraseña...")
 
-      const { token, expiresAt } = await userService.requestPasswordReset(email)
+      const response = await userService.requestPasswordReset(email)
 
-      const resetUrl = `${window.location.origin}/reset-password/${token}`
-
-      try {
-        if (navigator?.clipboard?.writeText) {
-          await navigator.clipboard.writeText(resetUrl)
-        }
-      } catch (clipboardError) {
-        console.warn("No se pudo copiar el enlace al portapapeles", clipboardError)
+      if (response.success) {
+        setSuccess(response.message || "Se ha enviado un enlace de recuperación a tu correo electrónico. Por favor revisa tu bandeja de entrada.")
+        setEmail("")
+      } else {
+        throw new Error(response.message || "Error al solicitar recuperación de contraseña")
       }
-
-      const expiration = new Date(expiresAt)
-      const expirationText = new Intl.DateTimeFormat('es-CO', {
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(expiration)
-
-      setSuccess(`Se generó un enlace temporal. Puedes restablecer tu contraseña desde ${resetUrl}. (Expira a las ${expirationText}). El enlace también se copió en tu portapapeles si fue posible.`)
-      setEmail("")
 
     } catch (error) {
       console.error("Error en la recuperación de contraseña:", error)
       
-      if (error instanceof Error) {
+      if (error.response?.data?.message) {
+        setError(error.response.data.message)
+      } else if (error instanceof Error) {
         setError(error.message)
       } else {
         setError("Ha ocurrido un error inesperado")

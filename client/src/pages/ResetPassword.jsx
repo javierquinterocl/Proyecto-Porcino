@@ -29,20 +29,36 @@ export default function ResetPasswordPage() {
 
     const validateToken = async () => {
       if (!token) {
+        console.error("❌ No hay token en la URL")
         setError("Token de recuperación inválido o faltante.")
         setTokenValid(false)
         return
       }
 
+      console.log("🔍 Validando token desde frontend...")
+      console.log("   Token:", token.substring(0, 20) + "...")
+
       try {
-        await userService.validateResetToken(token)
+        const response = await userService.validateResetToken(token)
+        console.log("📥 Respuesta del servidor:", response)
+        
         if (isMounted) {
-          setTokenValid(true)
+          if (response.success) {
+            console.log("✅ Token válido!")
+            setTokenValid(true)
+            setError("") // Limpiar cualquier error previo
+          } else {
+            console.log("❌ Token inválido según respuesta")
+            setError(response.message || "Token inválido o expirado.")
+            setTokenValid(false)
+          }
         }
       } catch (validationError) {
-        console.error("Token inválido", validationError)
+        console.error("❌ Error al validar token:", validationError)
+        console.error("   Response:", validationError.response)
         if (isMounted) {
-          setError(validationError instanceof Error ? validationError.message : "Token inválido o expirado.")
+          const errorMessage = validationError.response?.data?.message || "Token inválido o expirado."
+          setError(errorMessage)
           setTokenValid(false)
         }
       }
@@ -79,19 +95,25 @@ export default function ResetPasswordPage() {
 
       console.log("Restableciendo contraseña...")
 
-      await userService.resetPassword({ token, password })
+      const response = await userService.resetPassword({ token, password })
 
-      setSuccess("Contraseña restablecida exitosamente. Redirigiendo al login...")
-      
-      // Redirigir al login después de 2 segundos
-      setTimeout(() => {
-        navigate("/login")
-      }, 2000)
+      if (response.success) {
+        setSuccess(response.message || "Contraseña restablecida exitosamente. Redirigiendo al login...")
+        
+        // Redirigir al login después de 2 segundos
+        setTimeout(() => {
+          navigate("/login")
+        }, 2000)
+      } else {
+        throw new Error(response.message || "Error al resetear contraseña")
+      }
 
     } catch (error) {
       console.error("Error en el restablecimiento de contraseña:", error)
       
-      if (error instanceof Error) {
+      if (error.response?.data?.message) {
+        setError(error.response.data.message)
+      } else if (error instanceof Error) {
         setError(error.message)
       } else {
         setError("Ha ocurrido un error inesperado")

@@ -270,7 +270,10 @@ export function Sidebar({ isOpen = false, onClose }) {
       )}
       
       {/* Sidebar Desktop - Oculto en móvil */}
-      <aside className="bg-[#1a2e02] text-white flex-shrink-0 hidden md:flex md:flex-col transition-all duration-300 overflow-hidden h-full w-64">
+      <aside className={cn(
+        "bg-[#1a2e02] text-white flex-shrink-0 hidden md:flex md:flex-col transition-all duration-300 overflow-hidden h-full",
+        collapsed ? "w-16" : "w-64"
+      )}>
         <div className="flex flex-col h-full">
           <div className="p-4 flex items-center justify-between flex-shrink-0">
             {!collapsed && <h2 className="text-xl font-bold">Granme</h2>}

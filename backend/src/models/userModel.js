@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 
 const userModel = {
   // Crear un nuevo usuario (registro)
@@ -99,6 +100,110 @@ const userModel = {
   // Verificar contraseña
   verifyPassword: async (plainPassword, hashedPassword) => {
     return await bcrypt.compare(plainPassword, hashedPassword);
+  },
+
+  // ==================== PASSWORD RESET ====================
+
+  /**
+   * Crear un token de recuperación de contraseña
+   * @param {number} userId - ID del usuario
+   * @returns {Object} Token y fecha de expiración
+   */
+  createPasswordResetToken: async (userId) => {
+    // Generar token único
+    const token = crypto.randomBytes(32).toString('hex');
+    
+    // Token expira en 1 hora
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+
+    // Eliminar tokens anteriores del usuario
+    await pool.query(
+      'DELETE FROM password_reset_tokens WHERE user_id = $1',
+      [userId]
+    );
+
+    // Insertar nuevo token
+    const result = await pool.query(
+      `INSERT INTO password_reset_tokens (user_id, token, expires_at)
+       VALUES ($1, $2, $3)
+       RETURNING token, expires_at`,
+      [userId, token, expiresAt]
+    );
+
+    return result.rows[0];
+  },
+
+  /**
+   * Validar un token de recuperación
+   * @param {string} token - Token de recuperación
+   * @returns {Object|null} Datos del token si es válido
+   */
+  validatePasswordResetToken: async (token) => {
+    const result = await pool.query(
+      `SELECT prt.*, u.email, u.first_name, u.last_name
+       FROM password_reset_tokens prt
+       JOIN users u ON prt.user_id = u.id
+       WHERE prt.token = $1 
+         AND prt.expires_at > NOW() 
+         AND prt.used_at IS NULL
+         AND u.is_active = true`,
+      [token]
+    );
+
+    return result.rows[0] || null;
+  },
+
+  /**
+   * Marcar un token como usado
+   * @param {string} token - Token de recuperación
+   */
+  markTokenAsUsed: async (token) => {
+    await pool.query(
+      'UPDATE password_reset_tokens SET used_at = NOW() WHERE token = $1',
+      [token]
+    );
+  },
+
+  /**
+   * Resetear contraseña usando un token
+   * @param {string} token - Token de recuperación
+   * @param {string} newPassword - Nueva contraseña
+   * @returns {Object} Usuario actualizado
+   */
+  resetPasswordWithToken: async (token, newPassword) => {
+    // Validar token
+    const tokenData = await userModel.validatePasswordResetToken(token);
+    if (!tokenData) {
+      throw new Error('Token inválido o expirado');
+    }
+
+    // Hash de la nueva contraseña
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Actualizar contraseña
+    const result = await pool.query(
+      `UPDATE users 
+       SET password = $1, updated_at = NOW() 
+       WHERE id = $2 
+       RETURNING id, email, first_name, last_name`,
+      [hashedPassword, tokenData.user_id]
+    );
+
+    // Marcar token como usado
+    await userModel.markTokenAsUsed(token);
+
+    return result.rows[0];
+  },
+
+  /**
+   * Limpiar tokens expirados (para mantenimiento)
+   */
+  cleanExpiredTokens: async () => {
+    const result = await pool.query(
+      'DELETE FROM password_reset_tokens WHERE expires_at < NOW()'
+    );
+    return result.rowCount;
   }
 };
 

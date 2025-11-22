@@ -232,7 +232,23 @@ export const userService = {
   updateUser,
   updatePassword,
   deactivateUser,
-  deleteUser
+  deleteUser,
+  
+  // Password reset methods
+  requestPasswordReset: async (email) => {
+    const response = await api.post('/auth/forgot-password', { email });
+    return response.data;
+  },
+  
+  validateResetToken: async (token) => {
+    const response = await api.post('/auth/validate-reset-token', { token });
+    return response.data;
+  },
+  
+  resetPassword: async ({ token, password }) => {
+    const response = await api.post('/auth/reset-password', { token, password });
+    return response.data;
+  }
 };
 
 // ==================== SOW SERVICE ====================

@@ -18,25 +18,13 @@ import { Link, useNavigate } from "react-router-dom"
 
 export function Header({ toggleSidebar }) {
   const { setTheme, theme } = useTheme()
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
   const [mounted, setMounted] = useState(false)
-  const [user, setUser] = useState(null)
   const navigate = useNavigate()
 
   // Evitar problemas de hidratación
   useEffect(() => {
     setMounted(true)
-
-    // Obtener los datos del usuario desde localStorage
-    const userData = localStorage.getItem("user")
-    if (userData) {
-      try {
-        const parsedUser = JSON.parse(userData)
-        setUser(parsedUser)
-      } catch (error) {
-        console.error("Error al parsear los datos del usuario:", error)
-      }
-    }
   }, [])
 
   // Función para cerrar sesión
@@ -56,6 +44,11 @@ export function Header({ toggleSidebar }) {
   // Obtener iniciales para el avatar
   const getInitials = () => {
     if (!user) return "U"
+    
+    // Intentar con first_name y last_name (formato del backend)
+    if (user.first_name && user.last_name) {
+      return `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
+    }
     
     // Intentar con firstName y lastName
     if (user.firstName && user.lastName) {
@@ -88,7 +81,12 @@ export function Header({ toggleSidebar }) {
   const getFullName = () => {
     if (!user) return "Usuario"
     
-    // Intentar con firstName y lastName
+    // Intentar con first_name y last_name (formato del backend)
+    if (user.first_name && user.last_name) {
+      return `${user.first_name} ${user.last_name}`
+    }
+    
+    // Intentar con firstName y lastName (formato alternativo)
     if (user.firstName && user.lastName) {
       return `${user.firstName} ${user.lastName}`
     }

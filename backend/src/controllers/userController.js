@@ -1,5 +1,6 @@
 const userModel = require('../models/userModel');
 const jwt = require('jsonwebtoken');
+const emailService = require('../utils/emailService');
 
 const userController = {
   // POST /api/auth/register - Registrar nuevo usuario
@@ -347,6 +348,203 @@ const userController = {
       res.status(500).json({
         success: false,
         message: 'Error al eliminar usuario',
+        error: error.message
+      });
+    }
+  },
+
+  // ==================== PASSWORD RESET ENDPOINTS ====================
+
+  /**
+   * POST /api/auth/forgot-password
+   * Solicitar recuperación de contraseña
+   */
+  requestPasswordReset: async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      // Validación
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          message: 'El email es obligatorio'
+        });
+      }
+
+      // Buscar usuario por email
+      const user = await userModel.findByEmail(email);
+      
+      // Por seguridad, siempre retornar éxito aunque el usuario no exista
+      // Esto evita que se pueda enumerar usuarios válidos
+      if (!user) {
+        return res.json({
+          success: true,
+          message: 'Si el email existe en nuestro sistema, recibirás un enlace de recuperación'
+        });
+      }
+
+      // Verificar que el usuario esté activo
+      if (!user.is_active) {
+        return res.status(403).json({
+          success: false,
+          message: 'Usuario desactivado. Contacte al administrador.'
+        });
+      }
+
+      // Crear token de recuperación
+      const tokenData = await userModel.createPasswordResetToken(user.id);
+
+      // Enviar email (si el servicio está configurado)
+      try {
+        await emailService.sendPasswordResetEmail(
+          email,
+          tokenData.token,
+          `${user.first_name} ${user.last_name}`
+        );
+
+        res.json({
+          success: true,
+          message: 'Se ha enviado un enlace de recuperación a tu email',
+          data: {
+            expiresAt: tokenData.expires_at
+          }
+        });
+      } catch (emailError) {
+        console.error('Error al enviar email:', emailError);
+        
+        // Si el email falla pero tenemos el token, aún podemos continuar
+        // En desarrollo, retornar el token para testing
+        if (process.env.NODE_ENV === 'development') {
+          return res.json({
+            success: true,
+            message: 'Token generado (email no configurado)',
+            data: {
+              token: tokenData.token,
+              expiresAt: tokenData.expires_at
+            }
+          });
+        }
+
+        // En producción, informar el error
+        return res.status(500).json({
+          success: false,
+          message: 'Error al enviar el email de recuperación. Intente nuevamente más tarde.'
+        });
+      }
+    } catch (error) {
+      console.error('Error en requestPasswordReset:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al procesar la solicitud',
+        error: error.message
+      });
+    }
+  },
+
+  /**
+   * POST /api/auth/validate-reset-token
+   * Validar si un token de recuperación es válido
+   */
+  validateResetToken: async (req, res) => {
+    try {
+      const { token } = req.body;
+
+      console.log('🔍 Validando token de recuperación...');
+      console.log('   Token recibido:', token ? token.substring(0, 20) + '...' : 'NO TOKEN');
+
+      if (!token) {
+        console.log('❌ Token no proporcionado');
+        return res.status(400).json({
+          success: false,
+          message: 'Token es obligatorio'
+        });
+      }
+
+      const tokenData = await userModel.validatePasswordResetToken(token);
+
+      console.log('   Resultado validación:', tokenData ? 'VÁLIDO' : 'INVÁLIDO/EXPIRADO');
+
+      if (!tokenData) {
+        console.log('❌ Token inválido o expirado');
+        return res.status(400).json({
+          success: false,
+          message: 'Token inválido o expirado'
+        });
+      }
+
+      console.log('✅ Token válido para:', tokenData.email);
+      res.json({
+        success: true,
+        message: 'Token válido',
+        data: {
+          email: tokenData.email,
+          expiresAt: tokenData.expires_at
+        }
+      });
+    } catch (error) {
+      console.error('Error en validateResetToken:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al validar token',
+        error: error.message
+      });
+    }
+  },
+
+  /**
+   * POST /api/auth/reset-password
+   * Resetear contraseña usando un token
+   */
+  resetPassword: async (req, res) => {
+    try {
+      const { token, password } = req.body;
+
+      // Validaciones
+      if (!token || !password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Token y contraseña son obligatorios'
+        });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({
+          success: false,
+          message: 'La contraseña debe tener al menos 6 caracteres'
+        });
+      }
+
+      // Resetear contraseña
+      const user = await userModel.resetPasswordWithToken(token, password);
+
+      // Enviar email de confirmación (opcional, no bloquear si falla)
+      try {
+        await emailService.sendPasswordChangedEmail(
+          user.email,
+          `${user.first_name} ${user.last_name}`
+        );
+      } catch (emailError) {
+        console.error('Error al enviar email de confirmación:', emailError);
+        // No interrumpir el flujo
+      }
+
+      res.json({
+        success: true,
+        message: 'Contraseña actualizada exitosamente'
+      });
+    } catch (error) {
+      console.error('Error en resetPassword:', error);
+      
+      if (error.message === 'Token inválido o expirado') {
+        return res.status(400).json({
+          success: false,
+          message: error.message
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Error al resetear contraseña',
         error: error.message
       });
     }
