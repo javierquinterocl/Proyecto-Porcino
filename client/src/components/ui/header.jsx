@@ -1,8 +1,9 @@
-import { Bell, HelpCircle, Menu, Moon, Search, Settings, Sun, User, LogOut } from "lucide-react"
+import { Bell, HelpCircle, Menu, Moon, Search, Settings, Sun, User, LogOut, Check, Trash2, Calendar, AlertCircle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
 import { useTheme } from "@/components/ui/theme-provider"
 import { useAuth } from "@/context/AuthContext"
+import { useNotifications } from "@/context/NotificationContext"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,13 +20,54 @@ import { Link, useNavigate } from "react-router-dom"
 export function Header({ toggleSidebar }) {
   const { setTheme, theme } = useTheme()
   const { logout, user } = useAuth()
+  const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, refresh, isLoading, lastUpdate } = useNotifications()
   const [mounted, setMounted] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const navigate = useNavigate()
 
   // Evitar problemas de hidratación
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Función para calcular tiempo transcurrido
+  const getTimeAgo = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now - date) / 1000);
+
+    if (seconds < 60) return 'Hace un momento';
+    if (seconds < 3600) {
+      const minutes = Math.floor(seconds / 60);
+      return `Hace ${minutes} minuto${minutes > 1 ? 's' : ''}`;
+    }
+    if (seconds < 86400) {
+      const hours = Math.floor(seconds / 3600);
+      return `Hace ${hours} hora${hours > 1 ? 's' : ''}`;
+    }
+    const days = Math.floor(seconds / 86400);
+    if (days === 1) return 'Hace 1 día';
+    if (days < 7) return `Hace ${days} días`;
+    if (days < 30) {
+      const weeks = Math.floor(days / 7);
+      return `Hace ${weeks} semana${weeks > 1 ? 's' : ''}`;
+    }
+    const months = Math.floor(days / 30);
+    return `Hace ${months} mes${months > 1 ? 'es' : ''}`;
+  }
+
+  // Función para refrescar notificaciones manualmente
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refresh();
+      // Pequeño delay para mostrar la animación
+      setTimeout(() => setIsRefreshing(false), 500);
+    } catch (error) {
+      console.error('Error refrescando notificaciones:', error);
+      setIsRefreshing(false);
+    }
+  }
 
   // Función para cerrar sesión
   const handleLogout = async () => {
@@ -143,35 +185,134 @@ export function Header({ toggleSidebar }) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative text-white hover:bg-[#5a6a3a] hover:text-white">
-                <Bell className="h-5 w-5" />
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-red-500">
-                  3
-                </Badge>
+                <Bell className={`h-5 w-5 ${unreadCount > 0 ? 'animate-pulse' : ''}`} />
+                {unreadCount > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-red-500 animate-in fade-in zoom-in duration-300">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </Badge>
+                )}
                 <span className="sr-only">Notificaciones</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[300px] bg-white">
-              <DropdownMenuLabel className="text-gray-900">Notificaciones</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="w-[380px] bg-white max-h-[500px] overflow-y-auto">
+              <div className="px-2 py-1.5">
+                <div className="flex items-center justify-between">
+                  <DropdownMenuLabel className="text-gray-900 p-0">
+                    Notificaciones {unreadCount > 0 && `(${unreadCount})`}
+                  </DropdownMenuLabel>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 hover:bg-gray-100"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRefresh();
+                      }}
+                      disabled={isRefreshing}
+                      title="Refrescar notificaciones"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </Button>
+                    {unreadCount > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2 text-xs hover:bg-gray-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          markAllAsRead();
+                        }}
+                      >
+                        <Check className="h-3 w-3 mr-1" />
+                        Marcar todas
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                {lastUpdate && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Última actualización: {lastUpdate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                )}
+              </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="flex flex-col items-start focus:bg-gray-100">
-                <div className="font-medium text-gray-900">Stock bajo de alimento</div>
-                <div className="text-sm text-gray-600">El alimento balanceado está por debajo del mínimo</div>
-                <div className="text-xs text-gray-500 mt-1">Hace 2 horas</div>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="flex flex-col items-start focus:bg-gray-100">
-                <div className="font-medium text-gray-900">Nueva venta registrada</div>
-                <div className="text-sm text-gray-600">Se ha registrado una venta de leche</div>
-                <div className="text-xs text-gray-500 mt-1">Hace 5 horas</div>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="flex flex-col items-start focus:bg-gray-100">
-                <div className="font-medium text-gray-900">Vacunación programada</div>
-                <div className="text-sm text-gray-600">Recordatorio de vacunación para mañana</div>
-                <div className="text-xs text-gray-500 mt-1">Hace 1 día</div>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-center cursor-pointer text-gray-900 justify-center focus:bg-gray-100">
-                Ver todas las notificaciones
-              </DropdownMenuItem>
+              
+              {isLoading && notifications.length === 0 ? (
+                <div className="py-8 text-center text-gray-500">
+                  <RefreshCw className="h-8 w-8 mx-auto mb-2 opacity-30 animate-spin" />
+                  <p className="text-sm">Cargando notificaciones...</p>
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="py-8 text-center text-gray-500">
+                  <Bell className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">No tienes notificaciones</p>
+                </div>
+              ) : (
+                <>
+                  {notifications.slice(0, 10).map((notification) => {
+                    const Icon = notification.type === 'calendar' ? Calendar : AlertCircle;
+                    const timeAgo = getTimeAgo(notification.created_at);
+                    
+                    return (
+                      <DropdownMenuItem
+                        key={notification.id}
+                        className={`flex flex-col items-start p-3 cursor-pointer focus:bg-gray-100 ${
+                          !notification.is_read ? 'bg-blue-50' : ''
+                        }`}
+                        onClick={() => {
+                          if (!notification.is_read) {
+                            markAsRead(notification.id);
+                          }
+                          if (notification.action_url) {
+                            navigate(notification.action_url);
+                          }
+                        }}
+                      >
+                        <div className="flex items-start justify-between w-full gap-2">
+                          <div className="flex items-start gap-2 flex-1">
+                            <Icon className={`h-4 w-4 mt-0.5 flex-shrink-0 ${
+                              notification.priority === 'urgent' ? 'text-red-500' :
+                              notification.priority === 'high' ? 'text-orange-500' :
+                              'text-blue-500'
+                            }`} />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-gray-900 text-sm">
+                                {notification.title}
+                              </div>
+                              <div className="text-sm text-gray-600 mt-0.5 line-clamp-2">
+                                {notification.message}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                {timeAgo}
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 hover:bg-gray-200"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteNotification(notification.id);
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3 text-gray-500" />
+                          </Button>
+                        </div>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                  {notifications.length > 10 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="text-center cursor-pointer text-gray-900 justify-center focus:bg-gray-100">
+                        Ver todas las notificaciones ({notifications.length})
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -218,10 +359,7 @@ export function Header({ toggleSidebar }) {
                 <span>Mi Cuenta</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem className="focus:bg-gray-100">
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Configuración</span>
-            </DropdownMenuItem>
+           
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="focus:bg-gray-100 cursor-pointer">
               <LogOut className="mr-2 h-4 w-4" />

@@ -158,6 +158,45 @@ const userController = {
     }
   },
 
+  // PUT /api/auth/profile - Actualizar perfil del usuario autenticado
+  updateProfile: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { firstName, first_name, lastName, last_name, phone } = req.body;
+
+      // Validaciones básicas
+      const newFirstName = firstName || first_name;
+      const newLastName = lastName || last_name;
+
+      if (!newFirstName || !newLastName) {
+        return res.status(400).json({
+          success: false,
+          message: 'Nombre y apellido son obligatorios'
+        });
+      }
+
+      // Actualizar solo campos permitidos
+      const updatedUser = await userModel.updateProfile(userId, {
+        first_name: newFirstName.trim(),
+        last_name: newLastName.trim(),
+        phone: phone ? phone.trim() : null
+      });
+
+      res.json({
+        success: true,
+        message: 'Perfil actualizado exitosamente',
+        data: updatedUser
+      });
+    } catch (error) {
+      console.error('Error al actualizar perfil:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al actualizar perfil',
+        error: error.message
+      });
+    }
+  },
+
   // GET /api/users - Obtener todos los usuarios (solo admin)
   getAll: async (req, res) => {
     try {

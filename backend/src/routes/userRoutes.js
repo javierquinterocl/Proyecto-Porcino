@@ -12,6 +12,7 @@ router.post('/reset-password', userController.resetPassword);
 
 // Rutas protegidas (requieren autenticación)
 router.get('/me', authMiddleware, userController.getMe);
+router.put('/profile', authMiddleware, userController.updateProfile);
 router.get('/', authMiddleware, userController.getAll);
 router.get('/:id', authMiddleware, userController.getById);
 router.put('/:id', authMiddleware, userController.update);

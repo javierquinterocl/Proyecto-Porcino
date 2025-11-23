@@ -132,7 +132,48 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Funcion para actualizar datos del usuario
+  // Funcion para actualizar perfil del usuario autenticado
+  const updateProfile = async (userData) => {
+    try {
+      setIsLoading(true);
+      
+      // Validar y limpiar datos de actualización
+      const updateData = {
+        firstName: userData.firstName?.trim(),
+        lastName: userData.lastName?.trim(),
+        phone: userData.phone?.trim() || ""
+      };
+      
+      // Llamar al endpoint de perfil
+      const response = await userService.updateProfile(updateData);
+      
+      // Actualizar el usuario en el estado local
+      if (user) {
+        const updatedUser = {
+          ...user,
+          firstName: response.first_name,
+          first_name: response.first_name,
+          lastName: response.last_name,
+          last_name: response.last_name,
+          phone: response.phone,
+          updated_at: response.updated_at
+        };
+        setUser(updatedUser);
+        
+        // Actualizar localStorage
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('Error actualizando perfil:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Funcion para actualizar datos del usuario (admin)
   const updateUser = async (userId, userData) => {
     try {
       setIsLoading(true);
@@ -147,10 +188,11 @@ export const AuthProvider = ({ children }) => {
       
       const response = await userService.updateUser(userId, updateData);
       
-      // Actualizar el usuario en el estado local
+      // Actualizar el usuario en el estado local si es el usuario actual
       if (user && user.id === userId) {
         const updatedUser = { ...user, ...response };
         setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
       }
       
       return response;
@@ -209,6 +251,7 @@ export const AuthProvider = ({ children }) => {
     register,
     login,
     logout,
+    updateProfile,
     updateUser,
     getAllUsers,
     checkEmailAvailability,

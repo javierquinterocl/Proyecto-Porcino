@@ -1,4 +1,5 @@
 const calendarEventModel = require('../models/calendarEventModel');
+const notificationModel = require('../models/notificationModel');
 
 const calendarEventController = {
   // GET /api/calendar-events - Obtener todos los eventos
@@ -214,7 +215,11 @@ const calendarEventController = {
         });
       }
 
+      // Eliminar el evento
       await calendarEventModel.delete(id);
+
+      // Eliminar notificaciones asociadas al evento
+      await notificationModel.deleteByReference('calendar_event', id);
 
       res.json({
         success: true,

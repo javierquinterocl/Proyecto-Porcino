@@ -17,3 +17,4 @@ ALTER TABLE calendar_events
   ADD CONSTRAINT calendar_events_event_date_check 
   CHECK (event_date >= (CURRENT_DATE - INTERVAL '1 year')::TIMESTAMP WITH TIME ZONE);
 
+

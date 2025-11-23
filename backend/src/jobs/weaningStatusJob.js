@@ -21,15 +21,15 @@ const processWeaningDates = async () => {
         b.sow_id,
         b.expected_weaning_date,
         s.ear_tag as sow_ear_tag,
-        b.piglets_alive,
+        b.born_alive,
         COUNT(p.id) as total_piglets,
         COUNT(CASE WHEN p.current_status = 'destetado' THEN 1 END) as weaned_count
       FROM births b
       INNER JOIN sows s ON b.sow_id = s.id
       LEFT JOIN piglets p ON p.birth_id = b.id
       WHERE b.expected_weaning_date <= CURRENT_DATE
-        AND b.has_piglets = true
-      GROUP BY b.id, b.sow_id, b.expected_weaning_date, s.ear_tag, b.piglets_alive
+        AND b.born_alive > 0
+      GROUP BY b.id, b.sow_id, b.expected_weaning_date, s.ear_tag, b.born_alive
       HAVING COUNT(CASE WHEN p.current_status = 'destetado' THEN 1 END) < COUNT(p.id)
          OR COUNT(p.id) = 0
     `);
@@ -51,7 +51,7 @@ const processWeaningDates = async () => {
     for (const birth of birthsToWean.rows) {
       console.log(`\n🐷 Procesando destete de camada ${birth.id} - Cerda ${birth.sow_ear_tag}`);
       console.log(`   Fecha esperada de destete: ${birth.expected_weaning_date}`);
-      console.log(`   Lechones vivos registrados: ${birth.piglets_alive}`);
+      console.log(`   Lechones vivos registrados: ${birth.born_alive}`);
       console.log(`   Lechones en BD: ${birth.total_piglets} (${birth.weaned_count} ya destetados)`);
 
       // Actualizar todos los lechones de este parto a estado 'destetado'
@@ -122,14 +122,14 @@ const processSpecificBirth = async (birthId) => {
         b.sow_id,
         b.expected_weaning_date,
         s.ear_tag as sow_ear_tag,
-        b.piglets_alive,
+        b.born_alive,
         COUNT(p.id) as total_piglets,
         COUNT(CASE WHEN p.current_status = 'destetado' THEN 1 END) as weaned_count
       FROM births b
       INNER JOIN sows s ON b.sow_id = s.id
       LEFT JOIN piglets p ON p.birth_id = b.id
       WHERE b.id = $1
-      GROUP BY b.id, b.sow_id, b.expected_weaning_date, s.ear_tag, b.piglets_alive
+      GROUP BY b.id, b.sow_id, b.expected_weaning_date, s.ear_tag, b.born_alive
     `, [birthId]);
 
     if (birthInfo.rows.length === 0) {

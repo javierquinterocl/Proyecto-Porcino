@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { User, Mail, Phone, MapPin, Calendar, FileText, ShoppingBag, BarChart, Bell, Loader2 } from "lucide-react"
+import { User, Phone, MapPin, Calendar, FileText, BarChart, Bell, Loader2 } from "lucide-react"
 // Removed Switch import to avoid @radix-ui dependency
 import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/context/AuthContext"
@@ -18,35 +17,32 @@ import { useAuth } from "@/context/AuthContext"
 // NOTA: Los datos del usuario se obtienen del AuthContext
 // Los datos de ejemplo se eliminaron para usar solo datos reales
 
-// Datos de ejemplo para actividad reciente
-const recentActivity = [
-  { id: 1, action: "Registro de nacimiento", entity: "CAP009", date: "2023-04-14 14:30" },
-  { id: 2, action: "Actualización de inventario", entity: "INV005", date: "2023-04-13 10:15" },
-  { id: 3, action: "Registro de venta", entity: "VEN012", date: "2023-04-12 16:45" },
-  { id: 4, action: "Actualización de empleado", entity: "EMP003", date: "2023-04-10 09:20" },
-  { id: 5, action: "Registro de vacunación", entity: "CAP005", date: "2023-04-08 11:30" },
+// Información del sistema
+const systemInfo = [
+  { 
+    icon: FileText, 
+    title: "Gestión de Cerdas", 
+    description: "Registro y seguimiento completo del ciclo reproductivo" 
+  },
+  { 
+    icon: Calendar, 
+    title: "Calendario Integrado", 
+    description: "Planifica y visualiza eventos importantes de la granja" 
+  },
+  { 
+    icon: BarChart, 
+    title: "Reportes Detallados", 
+    description: "Analiza métricas y genera reportes personalizados" 
+  },
+  { 
+    icon: Bell, 
+    title: "Notificaciones", 
+    description: "Recibe alertas sobre eventos críticos y recordatorios" 
+  },
 ]
-
-// Datos de ejemplo para compras recientes
-const recentPurchases = [
-  { id: "PUR001", date: "2023-04-10", supplier: "Alimentos Naturales S.A.", items: 3, total: 450 },
-  { id: "PUR002", date: "2023-03-28", supplier: "Medicamentos Veterinarios", items: 5, total: 320 },
-  { id: "PUR003", date: "2023-03-15", supplier: "Forrajes del Valle", items: 2, total: 180 },
-  { id: "PUR004", date: "2023-03-05", supplier: "Suplementos Minerales", items: 4, total: 275 },
-  { id: "PUR005", date: "2023-02-20", supplier: "Equipos Agrícolas", items: 1, total: 1200 },
-]
-
-// Datos de ejemplo para estadísticas
-const userStats = {
-  registrosCreados: 128,
-  ventasRealizadas: 45,
-  comprasRealizadas: 32,
-  reportesGenerados: 18,
-  diasActivo: 245,
-}
 
 export function UserProfile() {
-  const { user, updateUser } = useAuth()
+  const { user, updateProfile } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({
     firstName: user?.firstName || "",
@@ -54,37 +50,28 @@ export function UserProfile() {
     phone: user?.phone || "",
   })
   
-  // Estados para el cambio de correo electrónico
-  const [isChangingEmail, setIsChangingEmail] = useState(false)
-  const [emailData, setEmailData] = useState({
-    currentEmail: user?.email || "",
-    newEmail: "",
-    password: ""
-  })
-
   // Estados para gestionar la imagen de perfil
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [previewImage, setPreviewImage] = useState(null)
   const fileInputRef = useRef(null)
   
   const [isLoading, setIsLoading] = useState(false)
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false)
-  const [activeTab, setActiveTab] = useState('settings')
   const [notifications, setNotifications] = useState({
     email: true,
     system: true,
     weekly: false
   })
   const [userInfo, setUserInfo] = useState({
-    ...userData,
-    ...user,
-    avatar: user?.avatar || ""
+    firstName: user?.firstName || user?.first_name || "",
+    lastName: user?.lastName || user?.last_name || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    avatar: user?.avatar || "",
+    createdAt: user?.createdAt || user?.created_at || new Date().toISOString(),
+    code: user?.code || user?.id || ""
   })
 
   const { toast } = useToast()
-  
-  // Referencia para controlar si ya cargamos el perfil
-  const profileLoadedRef = useRef(false);
 
   // Memoizar los datos de usuario para evitar renderizados innecesarios
   const userDisplayData = useMemo(() => {
@@ -92,9 +79,9 @@ export function UserProfile() {
       name: `${userInfo.firstName} ${userInfo.lastName}`,
       email: userInfo.email,
       phone: userInfo.phone || "No especificado",
-      code: userInfo.code || userData.id,
+      code: userInfo.code,
       avatar: userInfo.avatar,
-      joinDate: userInfo.createdAt ? new Date(userInfo.createdAt).toLocaleDateString() : userData.joinDate
+      joinDate: userInfo.createdAt ? new Date(userInfo.createdAt).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) : "No disponible"
     };
   }, [userInfo.firstName, userInfo.lastName, userInfo.email, userInfo.phone, userInfo.code, userInfo.avatar, userInfo.createdAt]);
   
@@ -107,13 +94,6 @@ export function UserProfile() {
     }));
   }, []);
 
-  const handleEmailChange = useCallback((e) => {
-    const { name, value } = e.target;
-    setEmailData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  }, []);
 
   const handleAvatarClick = useCallback(() => {
     if (fileInputRef.current) {
@@ -125,21 +105,19 @@ export function UserProfile() {
   useEffect(() => {
     if (user) {
       setFormData({
-        firstName: user.firstName || "",
-        lastName: user.lastName || "",
+        firstName: user.firstName || user.first_name || "",
+        lastName: user.lastName || user.last_name || "",
         phone: user.phone || "",
       });
       
-      setEmailData({
-        currentEmail: user.email || "",
-        newEmail: "",
-        password: ""
-      });
-      
       setUserInfo({
-        ...userData,
-        ...user,
-        avatar: user.avatar || ""
+        firstName: user.firstName || user.first_name || "",
+        lastName: user.lastName || user.last_name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        avatar: user.avatar || "",
+        createdAt: user.createdAt || user.created_at || new Date().toISOString(),
+        code: user.code || user.id || ""
       });
     }
   }, [user]);
@@ -191,12 +169,8 @@ export function UserProfile() {
         return;
       }
       
-      if (!user?.id) {
-        throw new Error('No se encontró información del usuario');
-      }
-      
       // Llamar a la API para actualizar el perfil
-      await updateUser(user.id, {
+      const updatedData = await updateProfile({
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone
@@ -205,9 +179,9 @@ export function UserProfile() {
       // Actualizar estado local
       setUserInfo(prev => ({
         ...prev,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        phone: formData.phone
+        firstName: updatedData.first_name || formData.firstName,
+        lastName: updatedData.last_name || formData.lastName,
+        phone: updatedData.phone || formData.phone
       }));
       
       setIsEditing(false);
@@ -226,25 +200,8 @@ export function UserProfile() {
     } finally {
       setIsLoading(false);
     }
-  }, [formData.firstName, formData.lastName, formData.phone, toast, user?.id, updateUser]);
+  }, [formData.firstName, formData.lastName, formData.phone, toast, updateProfile]);
 
-  // Función para actualizar email
-  const handleUpdateEmail = useCallback(async () => {
-    toast({
-      title: "Función en desarrollo",
-      description: "La actualización de correo electrónico estará disponible próximamente.",
-    });
-  }, []);
-  
-  // Función para cancelar la edición del correo
-  const handleCancelEmailChange = useCallback(() => {
-    setIsChangingEmail(false);
-    setEmailData({
-      currentEmail: user?.email || "",
-      newEmail: "",
-      password: ""
-    });
-  }, [user?.email]);
 
   // Función para eliminar foto de perfil
   const handleRemoveAvatar = useCallback(async () => {
@@ -304,10 +261,7 @@ export function UserProfile() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="text-sm text-muted-foreground text-center mb-2">
-                  Utiliza el botón de abajo para cambiar tu foto de perfil.
-                  <br />Tamaño máximo: 2MB.
-                </div>
+               
                 <div className="flex items-center">
                   <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
                   <span>{userDisplayData.phone}</span>
@@ -325,11 +279,25 @@ export function UserProfile() {
                   <span>ID: {user?.id || "N/A"}</span>
                 </div>
               </div>
-            </CardContent>
-            <CardFooter className="flex flex-col gap-2">
-            
-              
-              {(userDisplayData.avatar || previewImage) && (
+              </CardContent>
+              <CardFooter className="flex flex-col gap-2">
+                <Button 
+                  variant="default" 
+                  className="w-full bg-[#6b7c45] hover:bg-[#5a6a3a]"
+                  onClick={handleAvatarClick}
+                  disabled={isUploadingImage}
+                >
+                  {isUploadingImage ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Cargando...
+                    </>
+                  ) : (
+                    "Cambiar Foto de Perfil"
+                  )}
+                </Button>
+                
+                {(userDisplayData.avatar || previewImage) && (
                 <Button 
                   variant="outline" 
                   className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
@@ -344,45 +312,24 @@ export function UserProfile() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Estadísticas de Usuario</CardTitle>
+              <CardTitle>Funcionalidades del Sistema</CardTitle>
+              <CardDescription>Sistema de Gestión Porcina Granme</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="flex items-center">
-                    <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
-                    Registros Creados
-                  </span>
-                  <Badge variant="secondary">{userStats.registrosCreados}</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="flex items-center">
-                    <ShoppingBag className="h-4 w-4 mr-2 text-muted-foreground" />
-                    Ventas Realizadas
-                  </span>
-                  <Badge variant="secondary">{userStats.ventasRealizadas}</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="flex items-center">
-                    <ShoppingBag className="h-4 w-4 mr-2 text-muted-foreground" />
-                    Compras Realizadas
-                  </span>
-                  <Badge variant="secondary">{userStats.comprasRealizadas}</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="flex items-center">
-                    <BarChart className="h-4 w-4 mr-2 text-muted-foreground" />
-                    Reportes Generados
-                  </span>
-                  <Badge variant="secondary">{userStats.reportesGenerados}</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="flex items-center">
-                    <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                    Días Activo
-                  </span>
-                  <Badge variant="secondary">{userStats.diasActivo}</Badge>
-                </div>
+                {systemInfo.map((info, index) => (
+                  <div key={index} className="flex items-start gap-3 pb-3 border-b last:border-0 last:pb-0">
+                    <div className="p-2 rounded-lg bg-[#6b7c45]/10">
+                      <info.icon className="h-5 w-5 text-[#6b7c45]" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{info.title}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {info.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
@@ -391,284 +338,6 @@ export function UserProfile() {
         {/* Contenido principal */}
         <div className="md:col-span-2">
           <div className="space-y-4">
-            {/* Navegación simple sin pestañas */}
-            <div className="flex space-x-2 border-b">
-              <Button 
-                variant="ghost" 
-                className={`rounded-none ${activeTab === 'settings' ? 'border-b-2 border-primary' : ''}`}
-                onClick={() => setActiveTab('settings')}
-              >
-                Configuración
-              </Button>
-              <Button 
-                variant="ghost" 
-                className={`rounded-none ${activeTab === 'activity' ? 'border-b-2 border-primary' : ''}`}
-                onClick={() => setActiveTab('activity')}
-              >
-                Actividad
-              </Button>
-            </div>
-
-            {/* Pestaña de Actividad Reciente */}
-            {activeTab === 'activity' && (
-              <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Actividad Reciente</CardTitle>
-                  <CardDescription>Historial de tus acciones recientes en el sistema</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Acción</TableHead>
-                        <TableHead>Entidad</TableHead>
-                        <TableHead>Fecha</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recentActivity.map((activity) => (
-                        <TableRow key={activity.id}>
-                          <TableCell className="font-medium">{activity.action}</TableCell>
-                          <TableCell>{activity.entity}</TableCell>
-                          <TableCell>{activity.date}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button variant="outline">Ver Más Antiguas</Button>
-                  <Button variant="outline">Exportar Historial</Button>
-                </CardFooter>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Resumen de Actividad</CardTitle>
-                  <CardDescription>Resumen de tu actividad en el sistema</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="flex flex-col items-center p-4 border rounded-lg">
-                      <FileText className="h-8 w-8 mb-2 text-[#6b7c45]" />
-                      <span className="text-2xl font-bold">{userStats.registrosCreados}</span>
-                      <span className="text-sm text-muted-foreground">Registros</span>
-                    </div>
-                    <div className="flex flex-col items-center p-4 border rounded-lg">
-                      <ShoppingBag className="h-8 w-8 mb-2 text-[#6b7c45]" />
-                      <span className="text-2xl font-bold">
-                        {userStats.ventasRealizadas + userStats.comprasRealizadas}
-                      </span>
-                      <span className="text-sm text-muted-foreground">Transacciones</span>
-                    </div>
-                    <div className="flex flex-col items-center p-4 border rounded-lg">
-                      <BarChart className="h-8 w-8 mb-2 text-[#6b7c45]" />
-                      <span className="text-2xl font-bold">{userStats.reportesGenerados}</span>
-                      <span className="text-sm text-muted-foreground">Reportes</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              </div>
-            )}
-
-            {/* Pestaña de Compras */}
-            {activeTab === 'purchases' && (
-              <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Compras Recientes</CardTitle>
-                  <CardDescription>Historial de tus compras recientes</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>ID</TableHead>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Proveedor</TableHead>
-                        <TableHead>Artículos</TableHead>
-                        <TableHead>Total</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recentPurchases.map((purchase) => (
-                        <TableRow key={purchase.id}>
-                          <TableCell className="font-medium">{purchase.id}</TableCell>
-                          <TableCell>{purchase.date}</TableCell>
-                          <TableCell>{purchase.supplier}</TableCell>
-                          <TableCell>{purchase.items}</TableCell>
-                          <TableCell>${purchase.total}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button variant="outline">Ver Historial Completo</Button>
-                  <Button variant="outline">Exportar a PDF</Button>
-                </CardFooter>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Resumen de Compras</CardTitle>
-                  <CardDescription>Resumen de tus compras por categoría</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span>Alimentos</span>
-                        <span>$1,250</span>
-                      </div>
-                      <div className="w-full bg-secondary h-2 rounded-full">
-                        <div className="bg-[#6b7c45] h-2 rounded-full" style={{ width: "45%" }}></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span>Medicamentos</span>
-                        <span>$850</span>
-                      </div>
-                      <div className="w-full bg-secondary h-2 rounded-full">
-                        <div className="bg-[#6b7c45] h-2 rounded-full" style={{ width: "30%" }}></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span>Equipos</span>
-                        <span>$1,500</span>
-                      </div>
-                      <div className="w-full bg-secondary h-2 rounded-full">
-                        <div className="bg-[#6b7c45] h-2 rounded-full" style={{ width: "55%" }}></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span>Suplementos</span>
-                        <span>$450</span>
-                      </div>
-                      <div className="w-full bg-secondary h-2 rounded-full">
-                        <div className="bg-[#6b7c45] h-2 rounded-full" style={{ width: "15%" }}></div>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span>Otros</span>
-                        <span>$350</span>
-                      </div>
-                      <div className="w-full bg-secondary h-2 rounded-full">
-                        <div className="bg-[#6b7c45] h-2 rounded-full" style={{ width: "10%" }}></div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <div className="w-full flex justify-between">
-                    <span className="font-medium">Total Gastado:</span>
-                    <span className="font-bold">$4,400</span>
-                  </div>
-                </CardFooter>
-              </Card>
-              </div>
-            )}
-
-            {/* Pestaña de Seguridad */}
-            {activeTab === 'security' && (
-              <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Cambiar Correo Electrónico</CardTitle>
-                  <CardDescription>
-                    Actualiza tu dirección de correo electrónico
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isChangingEmail ? (
-                    <div className="space-y-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="currentEmail">Correo Electrónico Actual</Label>
-                        <Input 
-                          id="currentEmail" 
-                          name="currentEmail" 
-                          type="email" 
-                          value={emailData.currentEmail} 
-                          disabled 
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="newEmail">Nuevo Correo Electrónico</Label>
-                        <Input
-                          id="newEmail"
-                          name="newEmail"
-                          type="email"
-                          value={emailData.newEmail}
-                          onChange={handleEmailChange}
-                          placeholder="nuevo@correo.com"
-                          disabled={isLoading}
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="emailPassword">Contraseña para confirmar</Label>
-                        <Input
-                          id="emailPassword"
-                          name="password"
-                          type="password"
-                          value={emailData.password}
-                          onChange={handleEmailChange}
-                          placeholder="Ingresa tu contraseña actual"
-                          disabled={isLoading}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Mail className="h-5 w-5 mr-2 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">Correo Electrónico</p>
-                          <p className="text-sm text-muted-foreground">{userDisplayData.email}</p>
-                        </div>
-                      </div>
-                      <Button variant="outline" onClick={() => setIsChangingEmail(true)}>
-                        Cambiar
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-                {isChangingEmail && (
-                  <CardFooter className="flex justify-between">
-                    <Button
-                      variant="outline"
-                      onClick={handleCancelEmailChange}
-                      disabled={isLoading}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      onClick={handleUpdateEmail}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
-                          Actualizando...
-                        </>
-                      ) : (
-                        "Actualizar Correo"
-                      )}
-                    </Button>
-                  </CardFooter>
-                )}
-              </Card>
-              </div>
-            )}
-
-            {/* Pestaña de Configuración */}
-            {activeTab === 'settings' && (
-              <div className="space-y-4">
               <Card>
                 <CardHeader>
                   <CardTitle>Información Personal</CardTitle>
@@ -712,9 +381,6 @@ export function UserProfile() {
                       <div>
                         <Label className="text-muted-foreground">Correo Electrónico</Label>
                         <p>{userDisplayData.email}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Para cambiar el correo, ve a la pestaña de Seguridad
-                        </p>
                       </div>
                       <div>
                         <Label className="text-muted-foreground">Teléfono</Label>
@@ -729,34 +395,43 @@ export function UserProfile() {
                     </div>
                   )}
                 </CardContent>
-                {isEditing && (
-                  <CardFooter className="flex justify-between">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setIsEditing(false)
-                        setFormData({
-                          firstName: userInfo.firstName,
-                          lastName: userInfo.lastName,
-                          phone: userInfo.phone || "",
-                        })
-                      }}
-                      disabled={isLoading}
+                <CardFooter className="flex justify-between">
+                  {isEditing ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsEditing(false)
+                          setFormData({
+                            firstName: userInfo.firstName,
+                            lastName: userInfo.lastName,
+                            phone: userInfo.phone || "",
+                          })
+                        }}
+                        disabled={isLoading}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button onClick={handleSaveProfile} disabled={isLoading} className="bg-[#6b7c45] hover:bg-[#5a6a3a]">
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                            Guardando...
+                          </>
+                        ) : (
+                          "Guardar Cambios"
+                        )}
+                      </Button>
+                    </>
+                  ) : (
+                    <Button 
+                      onClick={() => setIsEditing(true)} 
+                      className="ml-auto bg-[#6b7c45] hover:bg-[#5a6a3a]"
                     >
-                      Cancelar
+                      Editar Perfil
                     </Button>
-                    <Button onClick={handleSaveProfile} disabled={isLoading}>
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
-                          Guardando...
-                        </>
-                      ) : (
-                        "Guardar Cambios"
-                      )}
-                    </Button>
-                  </CardFooter>
-                )}
+                  )}
+                </CardFooter>
               </Card>
 
               <Card>
@@ -776,8 +451,14 @@ export function UserProfile() {
                     <input 
                       type="checkbox" 
                       checked={notifications.email}
-                      onChange={(e) => setNotifications(prev => ({ ...prev, email: e.target.checked }))}
-                      className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                      onChange={(e) => {
+                        setNotifications(prev => ({ ...prev, email: e.target.checked }))
+                        toast({
+                          title: "Preferencia actualizada",
+                          description: `Notificaciones por correo ${e.target.checked ? 'activadas' : 'desactivadas'}`,
+                        })
+                      }}
+                      className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded cursor-pointer"
                     />
                   </div>
                   <Separator />
@@ -792,8 +473,14 @@ export function UserProfile() {
                     <input 
                       type="checkbox" 
                       checked={notifications.system}
-                      onChange={(e) => setNotifications(prev => ({ ...prev, system: e.target.checked }))}
-                      className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                      onChange={(e) => {
+                        setNotifications(prev => ({ ...prev, system: e.target.checked }))
+                        toast({
+                          title: "Preferencia actualizada",
+                          description: `Alertas del sistema ${e.target.checked ? 'activadas' : 'desactivadas'}`,
+                        })
+                      }}
+                      className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded cursor-pointer"
                     />
                   </div>
                   <Separator />
@@ -808,14 +495,18 @@ export function UserProfile() {
                     <input 
                       type="checkbox" 
                       checked={notifications.weekly}
-                      onChange={(e) => setNotifications(prev => ({ ...prev, weekly: e.target.checked }))}
-                      className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                      onChange={(e) => {
+                        setNotifications(prev => ({ ...prev, weekly: e.target.checked }))
+                        toast({
+                          title: "Preferencia actualizada",
+                          description: `Reportes semanales ${e.target.checked ? 'activados' : 'desactivados'}`,
+                        })
+                      }}
+                      className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded cursor-pointer"
                     />
                   </div>
                 </CardContent>
               </Card>
-              </div>
-            )}
           </div>
         </div>
       </div>

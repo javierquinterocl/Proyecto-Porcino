@@ -253,6 +253,19 @@ export function Sidebar({ isOpen = false, onClose }) {
     }))
   }
 
+  const handleLogout = async () => {
+    try {
+      await logout() // Usar la función logout del AuthContext
+      navigate("/login", { replace: true })
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error)
+      // Forzar limpieza y redirección aunque haya error
+      localStorage.removeItem("user")
+      localStorage.removeItem("authToken")
+      navigate("/login", { replace: true })
+    }
+  }
+
   const handleNavigate = () => {
     if (onClose) {
       onClose();
@@ -302,7 +315,7 @@ export function Sidebar({ isOpen = false, onClose }) {
               className="w-full justify-start text-white hover:bg-[#2a4a04] hover:text-white"
               asChild
             >
-              <Link to="/login" onClick={handleNavigate}>
+              <Link to="/login" onClick={handleLogout}>
                 <LogOut className={cn("h-5 w-5", collapsed ? "" : "mr-2")} />
                 {!collapsed && <span>Cerrar Sesión</span>}
               </Link>

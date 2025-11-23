@@ -13,10 +13,12 @@ const abortionRoutes = require('./routes/abortionRoutes');
 const pigletRoutes = require('./routes/pigletRoutes');
 const calendarEventRoutes = require('./routes/calendarEventRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 // Importar y configurar jobs automáticos
 const { heatStatusJob } = require('./jobs/heatStatusJob');
 const { weaningStatusJob } = require('./jobs/weaningStatusJob');
+const { notificationJob } = require('./jobs/notificationJob');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -103,6 +105,7 @@ app.use('/api/abortions', abortionRoutes);
 app.use('/api/piglets', pigletRoutes);
 app.use('/api/calendar-events', calendarEventRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Manejo de rutas no encontradas
 app.use((req, res) => {
@@ -133,6 +136,8 @@ app.listen(PORT, () => {
   console.log('✅ Job de actualización de celos activado (se ejecuta diariamente a las 2:00 AM)');
   weaningStatusJob.start();
   console.log('✅ Job de destete automático activado (se ejecuta diariamente a las 3:00 AM)');
+  notificationJob.start();
+  console.log('✅ Job de notificaciones activado (se ejecuta cada 6 horas)');
 });
 
 module.exports = app;

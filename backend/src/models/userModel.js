@@ -65,6 +65,21 @@ const userModel = {
     return result.rows[0];
   },
 
+  // Actualizar perfil del usuario (solo nombre, apellido y teléfono)
+  updateProfile: async (id, profileData) => {
+    const { first_name, last_name, phone } = profileData;
+    
+    const result = await pool.query(
+      `UPDATE users 
+       SET first_name = $1, last_name = $2, phone = $3, updated_at = NOW() 
+       WHERE id = $4 
+       RETURNING id, first_name, last_name, phone, email, is_active, created_at, updated_at`,
+      [first_name, last_name, phone, id]
+    );
+    
+    return result.rows[0];
+  },
+
   // Cambiar contraseña
   updatePassword: async (id, newPassword) => {
     const hashedPassword = await bcrypt.hash(newPassword, 10);

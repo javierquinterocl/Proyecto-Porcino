@@ -125,7 +125,17 @@ export const getUserById = async (id) => {
 };
 
 /**
- * Actualizar usuario
+ * Actualizar perfil del usuario autenticado
+ * @param {Object} profileData - Datos del perfil (firstName, lastName, phone)
+ * @returns {Promise<Object>} Usuario actualizado
+ */
+export const updateProfile = async (profileData) => {
+  const response = await api.put('/auth/profile', profileData);
+  return response.data.data;
+};
+
+/**
+ * Actualizar usuario (admin)
  * @param {string|number} id - ID del usuario
  * @param {Object} userData - Datos a actualizar
  * @returns {Promise<Object>} Usuario actualizado
@@ -229,6 +239,7 @@ export const userService = {
   getMe,
   getAllUsers,
   getUserById,
+  updateProfile,
   updateUser,
   updatePassword,
   deactivateUser,
@@ -1013,6 +1024,72 @@ export const reportService = {
     const response = await api.get(url);
     return response.data.data;
   },
+};
+
+// ==================== NOTIFICATION SERVICE ====================
+
+export const notificationService = {
+  // Obtener todas las notificaciones
+  getAll: async (filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.is_read !== undefined) params.append('is_read', filters.is_read);
+    if (filters.type) params.append('type', filters.type);
+    if (filters.limit) params.append('limit', filters.limit);
+    if (filters.offset) params.append('offset', filters.offset);
+    
+    const queryString = params.toString();
+    const url = queryString ? `/notifications?${queryString}` : '/notifications';
+    const response = await api.get(url);
+    return response.data.data || [];
+  },
+  
+  // Obtener notificaciones no leídas
+  getUnread: async () => {
+    const response = await api.get('/notifications/unread');
+    return response.data.data || [];
+  },
+  
+  // Obtener contador de no leídas
+  getUnreadCount: async () => {
+    const response = await api.get('/notifications/count');
+    return response.data.data?.count || 0;
+  },
+  
+  // Obtener una notificación por ID
+  getById: async (id) => {
+    const response = await api.get(`/notifications/${id}`);
+    return response.data.data;
+  },
+  
+  // Crear notificación
+  create: async (notificationData) => {
+    const response = await api.post('/notifications', notificationData);
+    return response.data.data;
+  },
+  
+  // Marcar como leída
+  markAsRead: async (id) => {
+    const response = await api.put(`/notifications/${id}/read`);
+    return response.data.data;
+  },
+  
+  // Marcar todas como leídas
+  markAllAsRead: async () => {
+    const response = await api.put('/notifications/read-all');
+    return response.data.data;
+  },
+  
+  // Eliminar notificación
+  delete: async (id) => {
+    const response = await api.delete(`/notifications/${id}`);
+    return response.data.data;
+  },
+  
+  // Eliminar todas
+  deleteAll: async () => {
+    const response = await api.delete('/notifications');
+    return response.data.data;
+  }
 };
 
 export default api;

@@ -32,12 +32,14 @@ import MyAccountPage from './pages/MyAccount'
 import { Toaster } from './components/ui/toaster'
 import { ProtectedRoute } from './components/ui/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
+import { NotificationProvider } from './context/NotificationContext'
 
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Routes>
+        <NotificationProvider>
+          <Routes>
           {/* Rutas públicas */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -88,8 +90,9 @@ function App() {
           
           {/* Redirigir cualquier ruta desconocida a dashboard */}
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-        <Toaster />
+          </Routes>
+          <Toaster />
+        </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>
   )
