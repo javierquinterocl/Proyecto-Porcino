@@ -206,7 +206,7 @@ const birthController = {
       const birthData = req.body;
 
       // Validaciones obligatorias
-      const requiredFields = ['sow_id', 'pregnancy_id', 'boar_id', 'birth_date', 
+      const requiredFields = ['sow_id', 'pregnancy_id', 'birth_date', 
                              'gestation_days', 'total_born', 'born_alive', 'born_dead'];
       const missingFields = requiredFields.filter(field => !birthData[field] && birthData[field] !== 0);
 
@@ -226,13 +226,18 @@ const birthController = {
         });
       }
 
-      // Verificar que el verraco existe
-      const boar = await boarModel.getById(birthData.boar_id);
-      if (!boar) {
-        return res.status(404).json({
-          success: false,
-          message: 'Verraco no encontrado'
-        });
+      // Verificar que el verraco existe si se proporciona
+      if (birthData.boar_id) {
+        const boar = await boarModel.getById(birthData.boar_id);
+        if (!boar) {
+          return res.status(404).json({
+            success: false,
+            message: 'Verraco no encontrado'
+          });
+        }
+      } else {
+        // Si no se proporciona verraco, establecer como null
+        birthData.boar_id = null;
       }
 
       // Verificar que la gestación existe y está en estado 'en curso'

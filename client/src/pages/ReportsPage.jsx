@@ -246,7 +246,7 @@ export default function ReportsPage() {
               onValueChange={setDateRange}
               disabled={selectedSow !== null && activeTab !== "reproductors"}
             >
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <Calendar className="h-4 w-4 mr-2" />
                 <SelectValue />
               </SelectTrigger>

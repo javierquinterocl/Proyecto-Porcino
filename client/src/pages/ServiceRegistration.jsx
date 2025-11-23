@@ -19,6 +19,7 @@ const ServiceRegistration = () => {
   const [sows, setSows] = useState([]);
   const [boars, setBoars] = useState([]);
   const [heats, setHeats] = useState([]);
+  const [currentHeat, setCurrentHeat] = useState(null); // Celo actual en modo edición
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -72,11 +73,31 @@ const ServiceRegistration = () => {
     try {
       setLoading(true);
       const service = await serviceService.getServiceById(id);
+      
+      // Cargar el celo actual (aunque esté en estado "servido")
+      if (service.heat_id) {
+        try {
+          const heat = await heatService.getHeatById(service.heat_id);
+          setCurrentHeat(heat);
+          
+          // Agregar el celo actual a la lista si no está ya
+          setHeats(prevHeats => {
+            const heatExists = prevHeats.some(h => h.id === heat.id);
+            if (!heatExists) {
+              return [...prevHeats, heat];
+            }
+            return prevHeats;
+          });
+        } catch (heatErr) {
+          console.error('Error loading heat:', heatErr);
+        }
+      }
+      
       setFormData({
         sow_id: service.sow_id?.toString() || '',
         boar_id: service.boar_id?.toString() || '',
         heat_id: service.heat_id?.toString() || '',
-        service_date: service.service_date || '',
+        service_date: service.service_date ? service.service_date.split('T')[0] : '',
         service_time: service.service_time?.substring(0, 5) || '',
         service_type: service.service_type || 'monta natural',
         service_number: service.service_number || 1,
@@ -122,13 +143,13 @@ const ServiceRegistration = () => {
         service_time: formData.service_time,
         service_type: formData.service_type,
         service_number: parseInt(formData.service_number) || 1,
+        boar_id: parseInt(formData.boar_id), // Verraco siempre obligatorio
         technician_name: formData.technician_name || null,
         success: formData.success,
         notes: formData.notes || null
       };
 
       if (formData.service_type === 'monta natural') {
-        serviceData.boar_id = parseInt(formData.boar_id);
         serviceData.mating_duration_minutes = formData.mating_duration_minutes ? parseInt(formData.mating_duration_minutes) : null;
         serviceData.mating_quality = (formData.mating_quality && formData.mating_quality !== 'none') ? formData.mating_quality : null;
       } else {
@@ -265,6 +286,7 @@ const ServiceRegistration = () => {
                       value={formData.heat_id}
                       onValueChange={(value) => handleChange('heat_id', value)}
                       required
+                      disabled={isEdit}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccionar celo" />
@@ -279,7 +301,8 @@ const ServiceRegistration = () => {
                           const date = new Date(heat.heat_date);
                           const formattedDate = date.toLocaleDateString('es-ES');
                           const formattedTime = heat.detection_time ? heat.detection_time.substring(0, 5) : '';
-                          const displayText = `${sowCode} - ${formattedDate}${formattedTime ? ' ' + formattedTime : ''}`;
+                          const statusBadge = heat.status === 'servido' ? ' [SERVIDO]' : '';
+                          const displayText = `${sowCode} - ${formattedDate}${formattedTime ? ' ' + formattedTime : ''}${statusBadge}`;
                           
                           return (
                             <SelectItem key={heat.id} value={heat.id.toString()}>
@@ -289,6 +312,11 @@ const ServiceRegistration = () => {
                         })}
                       </SelectContent>
                     </Select>
+                    {isEdit && currentHeat && (
+                      <p className="text-xs text-gray-500">
+                        El celo no se puede cambiar en modo edición
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -373,36 +401,49 @@ const ServiceRegistration = () => {
                 </div>
               </div>
 
-              {/* Sección 2: Datos de Monta Natural (solo si es monta natural) */}
+              {/* Sección 2: Selección de Verraco (para todos los tipos de servicio) */}
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-green-200">
+                  Verraco
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="boar_id" className="text-sm font-semibold">Verraco *</Label>
+                    <Select
+                      value={formData.boar_id}
+                      onValueChange={(value) => handleChange('boar_id', value)}
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar verraco" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {boars.length === 0 && (
+                          <SelectItem value="empty" disabled>No hay verracos disponibles</SelectItem>
+                        )}
+                        {boars.map((boar) => (
+                          <SelectItem key={boar.id} value={boar.id.toString()}>
+                            {boar.ear_tag} - {boar.name || 'Sin nombre'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500">
+                      {formData.service_type === 'monta natural' 
+                        ? 'Verraco que realizará la monta' 
+                        : 'Verraco del cual se obtuvo el semen'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sección 3: Datos de Monta Natural (solo si es monta natural) */}
               {formData.service_type === 'monta natural' && (
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-pink-200">
                     Datos de Monta Natural
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="boar_id" className="text-sm font-semibold">Verraco *</Label>
-                      <Select
-                        value={formData.boar_id}
-                        onValueChange={(value) => handleChange('boar_id', value)}
-                        required={formData.service_type === 'monta natural'}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar verraco" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {boars.length === 0 && (
-                            <SelectItem value="empty" disabled>No hay verracos disponibles</SelectItem>
-                          )}
-                          {boars.map((boar) => (
-                            <SelectItem key={boar.id} value={boar.id.toString()}>
-                              {boar.ear_tag} - {boar.name || 'Sin nombre'}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="mating_duration_minutes" className="text-sm font-semibold">
                         Duración (minutos) <span className="text-xs text-gray-500">(Opcional)</span>
@@ -441,7 +482,7 @@ const ServiceRegistration = () => {
                 </div>
               )}
 
-              {/* Sección 3: Datos de Inseminación Artificial (solo si es IA) */}
+              {/* Sección 4: Datos de Inseminación Artificial (solo si es IA) */}
               {formData.service_type === 'inseminacion artificial' && (
                 <div>
                   <h3 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-blue-200">
@@ -514,7 +555,7 @@ const ServiceRegistration = () => {
                 </div>
               )}
 
-              {/* Sección 4: Observaciones */}
+              {/* Sección 5: Observaciones */}
               <div>
                 <h3 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-yellow-200">
                   Observaciones

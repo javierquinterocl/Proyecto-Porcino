@@ -344,8 +344,11 @@ export function Header({ toggleSidebar }) {
               className="relative flex items-center gap-2 text-white hover:bg-[#5a6a3a] hover:text-white"
             >
               <Avatar className="h-8 w-8">
-                <AvatarImage src="/placeholder.svg?height=32&width=32" alt={getFullName()} />
-                <AvatarFallback className="bg-[#5a6a3a] text-white">{getInitials()}</AvatarFallback>
+                {user?.profile_image || user?.profileImage ? (
+                  <AvatarImage src={user.profile_image || user.profileImage} alt={getFullName()} />
+                ) : (
+                  <AvatarFallback className="bg-[#5a6a3a] text-white">{getInitials()}</AvatarFallback>
+                )}
               </Avatar>
               <span className="hidden md:inline">{getFullName()}</span>
             </Button>

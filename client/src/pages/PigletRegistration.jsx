@@ -144,7 +144,7 @@ export default function PigletRegistration() {
         description: "No se pudieron cargar los datos del lechón",
         variant: "destructive"
       });
-      navigate("/reproductive-list");
+      navigate("/sows/list");
     } finally {
       setIsLoadingData(false);
     }
@@ -281,7 +281,7 @@ export default function PigletRegistration() {
         });
       }
       
-      navigate("/reproductive-list");
+      navigate("/sows/list");
     } catch (error) {
       console.error("Error al guardar lechón:", error);
       toast({
@@ -760,7 +760,7 @@ export default function PigletRegistration() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate("/reproductive-list")}
+              onClick={() => navigate("/sows/list")}
               disabled={isLoading}
             >
               Cancelar

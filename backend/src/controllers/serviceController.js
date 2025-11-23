@@ -241,32 +241,32 @@ const serviceController = {
         serviceData.success = null;
       }
 
-      // Validaciones específicas por tipo de servicio (DESPUÉS de sanitizar)
+      // Validar que el verraco es obligatorio para todos los tipos de servicio
+      if (!serviceData.boar_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'El verraco es obligatorio para todos los tipos de servicio'
+        });
+      }
+
+      // Verificar que el verraco existe y está activo
+      const boar = await boarModel.getById(serviceData.boar_id);
+      if (!boar) {
+        return res.status(404).json({
+          success: false,
+          message: 'Verraco no encontrado'
+        });
+      }
+
+      if (boar.status !== 'activo') {
+        return res.status(400).json({
+          success: false,
+          message: 'El verraco no está activo'
+        });
+      }
+
+      // Limpiar campos específicos según tipo de servicio
       if (serviceData.service_type === 'monta natural') {
-        // Para monta natural, el verraco es obligatorio
-        if (!serviceData.boar_id) {
-          return res.status(400).json({
-            success: false,
-            message: 'Para monta natural se requiere seleccionar un verraco'
-          });
-        }
-
-        // Verificar que el verraco existe y está activo
-        const boar = await boarModel.getById(serviceData.boar_id);
-        if (!boar) {
-          return res.status(404).json({
-            success: false,
-            message: 'Verraco no encontrado'
-          });
-        }
-
-        if (boar.status !== 'activo') {
-          return res.status(400).json({
-            success: false,
-            message: 'El verraco no está activo'
-          });
-        }
-
         // Limpiar campos de IA (forzar a NULL)
         serviceData.ia_type = null;
         serviceData.semen_dose_code = null;
@@ -274,8 +274,7 @@ const serviceController = {
         serviceData.semen_concentration = null;
 
       } else if (serviceData.service_type === 'inseminacion artificial') {
-        // Para IA, limpiar campos de monta natural (forzar a NULL)
-        serviceData.boar_id = null;
+        // Limpiar campos de monta natural (forzar a NULL)
         serviceData.mating_duration_minutes = null;
         serviceData.mating_quality = null;
       }
@@ -385,7 +384,25 @@ const serviceController = {
         serviceData.success = null;
       }
 
-      // Limpiar campos según tipo de servicio
+      // Validar que el verraco existe si se proporciona
+      if (serviceData.boar_id) {
+        const boar = await boarModel.getById(serviceData.boar_id);
+        if (!boar) {
+          return res.status(404).json({
+            success: false,
+            message: 'Verraco no encontrado'
+          });
+        }
+
+        if (boar.status !== 'activo') {
+          return res.status(400).json({
+            success: false,
+            message: 'El verraco no está activo'
+          });
+        }
+      }
+
+      // Limpiar campos específicos según tipo de servicio
       if (serviceData.service_type === 'monta natural') {
         // Limpiar campos de IA
         serviceData.ia_type = null;
@@ -393,8 +410,7 @@ const serviceController = {
         serviceData.semen_volume_ml = null;
         serviceData.semen_concentration = null;
       } else if (serviceData.service_type === 'inseminacion artificial') {
-        // Limpiar campos de monta natural
-        serviceData.boar_id = null;
+        // Limpiar campos de monta natural (excepto boar_id)
         serviceData.mating_duration_minutes = null;
         serviceData.mating_quality = null;
       }

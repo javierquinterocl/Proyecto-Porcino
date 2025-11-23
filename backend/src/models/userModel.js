@@ -32,7 +32,7 @@ const userModel = {
   // Buscar usuario por ID
   findById: async (id) => {
     const result = await pool.query(
-      `SELECT id, first_name, last_name, phone, email, is_active, created_at, updated_at 
+      `SELECT id, first_name, last_name, phone, email, profile_image, is_active, created_at, updated_at 
        FROM users WHERE id = $1`,
       [id]
     );
@@ -42,7 +42,7 @@ const userModel = {
   // Obtener todos los usuarios
   getAll: async () => {
     const result = await pool.query(
-      `SELECT id, first_name, last_name, phone, email, is_active, created_at, updated_at 
+      `SELECT id, first_name, last_name, phone, email, profile_image, is_active, created_at, updated_at 
        FROM users 
        ORDER BY created_at DESC`
     );
@@ -73,8 +73,34 @@ const userModel = {
       `UPDATE users 
        SET first_name = $1, last_name = $2, phone = $3, updated_at = NOW() 
        WHERE id = $4 
-       RETURNING id, first_name, last_name, phone, email, is_active, created_at, updated_at`,
+       RETURNING id, first_name, last_name, phone, email, profile_image, is_active, created_at, updated_at`,
       [first_name, last_name, phone, id]
+    );
+    
+    return result.rows[0];
+  },
+
+  // Actualizar imagen de perfil
+  updateProfileImage: async (id, profileImage) => {
+    const result = await pool.query(
+      `UPDATE users 
+       SET profile_image = $1, updated_at = NOW() 
+       WHERE id = $2 
+       RETURNING id, first_name, last_name, phone, email, profile_image, is_active, created_at, updated_at`,
+      [profileImage, id]
+    );
+    
+    return result.rows[0];
+  },
+
+  // Eliminar imagen de perfil
+  deleteProfileImage: async (id) => {
+    const result = await pool.query(
+      `UPDATE users 
+       SET profile_image = NULL, updated_at = NOW() 
+       WHERE id = $1 
+       RETURNING id, first_name, last_name, phone, email, profile_image, is_active, created_at, updated_at`,
+      [id]
     );
     
     return result.rows[0];

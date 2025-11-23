@@ -173,6 +173,68 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Función para actualizar imagen de perfil del usuario autenticado
+  const updateProfileImage = async (profileImage) => {
+    try {
+      setIsLoading(true);
+      
+      // Llamar al endpoint de actualización de imagen
+      const response = await userService.updateProfileImage(profileImage);
+      
+      // Actualizar el usuario en el estado local
+      if (user) {
+        const updatedUser = {
+          ...user,
+          profile_image: response.profile_image,
+          profileImage: response.profile_image,
+          updated_at: response.updated_at
+        };
+        setUser(updatedUser);
+        
+        // Actualizar localStorage
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('Error actualizando imagen de perfil:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Función para eliminar imagen de perfil del usuario autenticado
+  const deleteProfileImage = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Llamar al endpoint de eliminación de imagen
+      const response = await userService.deleteProfileImage();
+      
+      // Actualizar el usuario en el estado local
+      if (user) {
+        const updatedUser = {
+          ...user,
+          profile_image: null,
+          profileImage: null,
+          updated_at: response.updated_at
+        };
+        setUser(updatedUser);
+        
+        // Actualizar localStorage
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('Error eliminando imagen de perfil:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Funcion para actualizar datos del usuario (admin)
   const updateUser = async (userId, userData) => {
     try {
@@ -252,6 +314,8 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     updateProfile,
+    updateProfileImage,
+    deleteProfileImage,
     updateUser,
     getAllUsers,
     checkEmailAvailability,

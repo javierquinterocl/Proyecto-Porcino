@@ -197,6 +197,80 @@ const userController = {
     }
   },
 
+  // PUT /api/auth/profile/image - Actualizar imagen de perfil
+  updateProfileImage: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { profileImage } = req.body;
+
+      // Validar que se envió una imagen
+      if (!profileImage) {
+        return res.status(400).json({
+          success: false,
+          message: 'La imagen de perfil es obligatoria'
+        });
+      }
+
+      // Validar que la imagen esté en formato base64
+      if (!profileImage.startsWith('data:image/')) {
+        return res.status(400).json({
+          success: false,
+          message: 'La imagen debe estar en formato base64'
+        });
+      }
+
+      // Validar tamaño de la imagen (máximo 5MB en base64)
+      const sizeInBytes = (profileImage.length * 3) / 4;
+      const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
+      
+      if (sizeInBytes > maxSizeInBytes) {
+        return res.status(400).json({
+          success: false,
+          message: 'La imagen es demasiado grande. El tamaño máximo es 5MB'
+        });
+      }
+
+      // Actualizar imagen de perfil
+      const updatedUser = await userModel.updateProfileImage(userId, profileImage);
+
+      res.json({
+        success: true,
+        message: 'Imagen de perfil actualizada exitosamente',
+        data: updatedUser
+      });
+    } catch (error) {
+      console.error('Error al actualizar imagen de perfil:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al actualizar imagen de perfil',
+        error: error.message
+      });
+    }
+  },
+
+  // DELETE /api/auth/profile/image - Eliminar imagen de perfil
+  deleteProfileImage: async (req, res) => {
+    try {
+      const userId = req.user.id;
+
+      // Eliminar imagen de perfil
+      const updatedUser = await userModel.deleteProfileImage(userId);
+
+      res.json({
+        success: true,
+        message: 'Imagen de perfil eliminada exitosamente',
+        data: updatedUser
+      });
+    } catch (error) {
+      console.error('Error al eliminar imagen de perfil:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al eliminar imagen de perfil',
+        error: error.message
+      });
+    }
+  },
+
   // GET /api/users - Obtener todos los usuarios (solo admin)
   getAll: async (req, res) => {
     try {

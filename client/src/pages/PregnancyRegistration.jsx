@@ -128,25 +128,37 @@ export default function PregnancyRegistration() {
         notes: pregnancy.notes || ""
       });
 
+      // Cargar información del servicio primero
+      if (pregnancy.service_id) {
+        try {
+          const service = await serviceService.getServiceById(pregnancy.service_id);
+          setSelectedService(service);
+        } catch (serviceErr) {
+          console.error('Error loading service:', serviceErr);
+        }
+      }
+
       // Cargar información de la cerda
       if (pregnancy.sow_id) {
         const sow = await pigService.getSowById(pregnancy.sow_id);
         setSelectedSow(sow);
         
-        // Filtrar servicios de esta cerda
+        // Filtrar servicios de esta cerda e incluir el servicio actual
         const sowServices = services.filter(s => s.sow_id === pregnancy.sow_id);
+        
+        // Si el servicio actual no está en la lista, agregarlo
+        if (pregnancy.service_id && !sowServices.some(s => s.id === pregnancy.service_id)) {
+          if (selectedService) {
+            sowServices.push(selectedService);
+          }
+        }
+        
         setFilteredServices(sowServices);
       }
 
       // Si hay imagen, cargarla como preview
       if (pregnancy.ultrasound_image_url) {
         setImagePreview(pregnancy.ultrasound_image_url);
-      }
-
-      // Cargar información del servicio
-      if (pregnancy.service_id) {
-        const service = services.find(s => s.id === pregnancy.service_id);
-        setSelectedService(service);
       }
     } catch (error) {
       console.error("Error cargando datos de la gestación:", error);
@@ -583,9 +595,14 @@ export default function PregnancyRegistration() {
                       </SelectContent>
                     </Select>
                     {errors.service_id && <p className="text-sm text-red-500">{errors.service_id}</p>}
+                    {isEditMode && (
+                      <p className="text-xs text-gray-500">
+                        El servicio no se puede cambiar en modo edición
+                      </p>
+                    )}
                     {selectedService && (
                       <p className="text-sm text-muted-foreground">
-                        Tipo: {selectedService.service_type} | Verraco: {selectedService.boar_code || 'N/A'}
+                        Tipo: {selectedService.service_type} | Verraco: {selectedService.boar_ear_tag || selectedService.boar_code || 'N/A'}
                       </p>
                     )}
                   </div>
@@ -797,21 +814,41 @@ export default function PregnancyRegistration() {
                         </p>
                       </div>
                     ) : (
-                      <div className="relative">
-                        <img 
-                          src={imagePreview} 
-                          alt="Ecografía" 
-                          className="w-full max-h-96 object-contain rounded-lg"
-                        />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-2 right-2"
-                          onClick={handleRemoveImage}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                      <div className="space-y-4">
+                        <div className="relative">
+                          <img 
+                            src={imagePreview} 
+                            alt="Ecografía" 
+                            className="w-full max-h-96 object-contain rounded-lg bg-gray-50"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2"
+                            onClick={handleRemoveImage}
+                            title="Eliminar imagen"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="flex justify-center">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <Upload className="mr-2 h-4 w-4" />
+                            Cambiar Imagen
+                          </Button>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="hidden"
+                          />
+                        </div>
                       </div>
                     )}
                   </div>

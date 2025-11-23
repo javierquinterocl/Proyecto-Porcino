@@ -42,7 +42,7 @@ const systemInfo = [
 ]
 
 export function UserProfile() {
-  const { user, updateProfile } = useAuth()
+  const { user, updateProfile, updateProfileImage, deleteProfileImage } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({
     firstName: user?.firstName || "",
@@ -115,7 +115,7 @@ export function UserProfile() {
         lastName: user.lastName || user.last_name || "",
         email: user.email || "",
         phone: user.phone || "",
-        avatar: user.avatar || "",
+        avatar: user.profile_image || user.profileImage || user.avatar || "",
         createdAt: user.createdAt || user.created_at || new Date().toISOString(),
         code: user.code || user.id || ""
       });
@@ -137,21 +137,74 @@ export function UserProfile() {
       });
       return;
     }
-    
-    // Mostrar vista previa
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setPreviewImage(event.target.result);
-      }
-    };
-    reader.readAsDataURL(file);
 
-    toast({
-      title: "Función en desarrollo",
-      description: "La actualización de foto de perfil estará disponible próximamente.",
-    });
-  }, [toast]);
+    // Validar tamaño (máximo 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      toast({
+        title: "Error",
+        description: "La imagen es demasiado grande. El tamaño máximo es 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsUploadingImage(true);
+
+    try {
+      // Convertir a base64
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        if (event.target?.result) {
+          const base64Image = event.target.result;
+          
+          // Mostrar vista previa
+          setPreviewImage(base64Image);
+          
+          try {
+            // Subir la imagen al servidor
+            await updateProfileImage(base64Image);
+            
+            toast({
+              title: "Éxito",
+              description: "Imagen de perfil actualizada correctamente",
+              className: "bg-green-50 border-green-200"
+            });
+            
+            // Limpiar la vista previa después de subir
+            setPreviewImage(null);
+          } catch (error) {
+            console.error('Error al subir imagen:', error);
+            toast({
+              title: "Error",
+              description: error.message || "No se pudo actualizar la imagen de perfil",
+              variant: "destructive",
+            });
+            setPreviewImage(null);
+          }
+        }
+      };
+      
+      reader.onerror = () => {
+        toast({
+          title: "Error",
+          description: "Error al leer el archivo de imagen",
+          variant: "destructive",
+        });
+      };
+      
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error procesando imagen:', error);
+      toast({
+        title: "Error",
+        description: "Error al procesar la imagen",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingImage(false);
+    }
+  }, [toast, updateProfileImage]);
 
   // Función para guardar perfil
   const handleSaveProfile = useCallback(async () => {
@@ -205,11 +258,30 @@ export function UserProfile() {
 
   // Función para eliminar foto de perfil
   const handleRemoveAvatar = useCallback(async () => {
-    toast({
-      title: "Función en desarrollo",
-      description: "La eliminación de foto de perfil estará disponible próximamente.",
-    });
-  }, []);
+    try {
+      setIsUploadingImage(true);
+      
+      await deleteProfileImage();
+      
+      // Limpiar la vista previa
+      setPreviewImage(null);
+      
+      toast({
+        title: "Éxito",
+        description: "Imagen de perfil eliminada correctamente",
+        className: "bg-green-50 border-green-200"
+      });
+    } catch (error) {
+      console.error('Error al eliminar imagen:', error);
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo eliminar la imagen de perfil",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingImage(false);
+    }
+  }, [toast, deleteProfileImage]);
 
   return (
     <div className="space-y-6">

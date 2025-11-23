@@ -24,6 +24,9 @@ CREATE TABLE users (
   -- Autenticación
   password TEXT NOT NULL,   
   
+  -- Imagen de perfil (Base64)
+  profile_image TEXT,
+  
   -- Estado del usuario
   is_active BOOLEAN DEFAULT TRUE,
 

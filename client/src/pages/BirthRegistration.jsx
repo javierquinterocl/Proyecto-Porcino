@@ -322,7 +322,6 @@ export default function BirthRegistration() {
     // Campos obligatorios
     if (!formData.sow_id) newErrors.sow_id = "Seleccione una cerda";
     if (!formData.pregnancy_id) newErrors.pregnancy_id = "Seleccione una gestación";
-    if (!formData.boar_id) newErrors.boar_id = "Seleccione un verraco";
     if (!formData.birth_date) newErrors.birth_date = "La fecha del parto es obligatoria";
     if (!formData.gestation_days) newErrors.gestation_days = "Los días de gestación son obligatorios";
     if (formData.total_born === "") newErrors.total_born = "El total de nacidos es obligatorio";
@@ -389,7 +388,7 @@ export default function BirthRegistration() {
         ...formData,
         sow_id: parseInt(formData.sow_id),
         pregnancy_id: parseInt(formData.pregnancy_id),
-        boar_id: parseInt(formData.boar_id),
+        boar_id: formData.boar_id ? parseInt(formData.boar_id) : null,
         gestation_days: parseInt(formData.gestation_days),
         total_born: parseInt(formData.total_born),
         born_alive: parseInt(formData.born_alive),
@@ -560,10 +559,10 @@ export default function BirthRegistration() {
                     )}
                   </div>
 
-                  {/* Verraco (autocompletado) */}
+                  {/* Verraco (autocompletado, opcional) */}
                   <div className="space-y-2">
                     <Label htmlFor="boar_id">
-                      Verraco (Padre) <span className="text-red-500">*</span>
+                      Verraco (Padre) <span className="text-xs text-gray-500">(Opcional)</span>
                     </Label>
                     <Select
                       value={formData.boar_id ? formData.boar_id.toString() : ""}

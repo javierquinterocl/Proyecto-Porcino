@@ -135,6 +135,25 @@ export const updateProfile = async (profileData) => {
 };
 
 /**
+ * Actualizar imagen de perfil del usuario autenticado
+ * @param {string} profileImage - Imagen en formato base64
+ * @returns {Promise<Object>} Usuario actualizado
+ */
+export const updateProfileImage = async (profileImage) => {
+  const response = await api.put('/auth/profile/image', { profileImage });
+  return response.data.data;
+};
+
+/**
+ * Eliminar imagen de perfil del usuario autenticado
+ * @returns {Promise<Object>} Usuario actualizado
+ */
+export const deleteProfileImage = async () => {
+  const response = await api.delete('/auth/profile/image');
+  return response.data.data;
+};
+
+/**
  * Actualizar usuario (admin)
  * @param {string|number} id - ID del usuario
  * @param {Object} userData - Datos a actualizar
@@ -240,6 +259,8 @@ export const userService = {
   getAllUsers,
   getUserById,
   updateProfile,
+  updateProfileImage,
+  deleteProfileImage,
   updateUser,
   updatePassword,
   deactivateUser,
