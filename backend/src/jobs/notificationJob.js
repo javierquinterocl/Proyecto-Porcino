@@ -1,6 +1,8 @@
 const cron = require('node-cron');
 const pool = require('../config/db');
 const notificationModel = require('../models/notificationModel');
+const userModel = require('../models/userModel');
+const emailService = require('../utils/emailService');
 
 /**
  * Job para generar notificaciones automáticas basadas en:
@@ -77,13 +79,61 @@ const notificationJob = {
           priority,
           reference_type: 'calendar_event',
           reference_id: event.id,
-          action_url: '/calendar'
+          action_url: '/calendar',
+          // incluir la fecha del evento en el objeto en memoria
+          event_date: event.event_date
         });
       }
 
       if (notifications.length > 0) {
-        await notificationModel.createBulk(notifications);
-        console.log(`   ✅ Creadas ${notifications.length} notificaciones de calendario`);
+        const created = await notificationModel.createBulk(notifications);
+        console.log(`   ✅ Creadas ${created.length} notificaciones de calendario`);
+        // Enviar correo por cada notificación creada usando las fechas del objeto en memoria
+        for (let i = 0; i < created.length; i++) {
+          const notification = created[i];
+          const original = notifications[i];
+          try {
+            const user = await userModel.findById(notification.user_id);
+            if (user && user.email) {
+              const subject = notification.title || 'Nueva notificación';
+              // Obtener la fecha y hora del evento real desde el objeto original en memoria
+              let eventDate = null;
+              if (original && original.event_date) {
+                eventDate = new Date(original.event_date);
+              }
+              const pad = n => n.toString().padStart(2, '0');
+              const formattedDate = `${eventDate.getFullYear()}/${pad(eventDate.getMonth()+1)}/${pad(eventDate.getDate())}`;
+              const formattedTime = `${pad(eventDate.getHours())}:${pad(eventDate.getMinutes())}`;
+
+              const html = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #eee; padding: 24px;">
+                  <h2 style="color: #1a2e02;">Hola ${user.first_name || user.email},</h2>
+                  <p style="font-size: 16px;">Tienes una nueva notificación en el sistema Granme:</p>
+                  <table style="width:100%; margin: 16px 0; border-collapse: collapse;">
+                    <tr><td style="font-weight:bold;">Título:</td><td>${notification.title}</td></tr>
+                    <tr><td style="font-weight:bold;">Tipo:</td><td>${notification.type || 'General'}</td></tr>
+                    <tr><td style="font-weight:bold;">Descripción:</td><td>${notification.message}</td></tr>
+                    <tr><td style="font-weight:bold;">Fecha del evento:</td><td>${formattedDate}</td></tr>
+                    <tr><td style="font-weight:bold;">Hora del evento:</td><td>${formattedTime}</td></tr>
+                  </table>
+                  <div style="margin: 24px 0; text-align: center;">
+                    <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/notifications" style="background: #6b7c45; color: #fff; text-decoration: none; padding: 12px 32px; border-radius: 5px; font-weight: bold;">Ver más</a>
+                  </div>
+                  <hr>
+                  <small style="color: #888;">Este mensaje fue generado automáticamente por el sistema Granme.</small>
+                </div>
+              `;
+              await emailService.transporter?.sendMail({
+                from: `"Sistema Granme" <${emailService.fromEmail}>`,
+                to: user.email,
+                subject,
+                html
+              });
+            }
+          } catch (emailError) {
+            console.error('Error al enviar email de notificación automática:', emailError);
+          }
+        }
       }
     } catch (error) {
       console.error('❌ Error generando notificaciones de calendario:', error);
@@ -156,13 +206,54 @@ const notificationJob = {
           priority,
           reference_type: 'pregnancy',
           reference_id: preg.id,
-          action_url: `/pregnancies?sow=${preg.sow_id}`
+          action_url: `/pregnancies?sow=${preg.sow_id}`,
+          expected_farrowing_date: preg.expected_farrowing_date
         });
       }
 
       if (notifications.length > 0) {
-        await notificationModel.createBulk(notifications);
-        console.log(`   ✅ Creadas ${notifications.length} notificaciones de partos`);
+        const created = await notificationModel.createBulk(notifications);
+        console.log(`   ✅ Creadas ${created.length} notificaciones de partos`);
+        for (let i = 0; i < created.length; i++) {
+          const notification = created[i];
+          const original = notifications[i];
+          try {
+            const user = await userModel.findById(notification.user_id);
+            if (user && user.email) {
+              const subject = notification.title || 'Nueva notificación';
+              // usar fecha original si está disponible
+              let eventDate = null;
+              if (original && original.expected_farrowing_date) {
+                eventDate = new Date(original.expected_farrowing_date);
+              }
+              const pad = n => n.toString().padStart(2, '0');
+              const formattedDate = eventDate ? `${eventDate.getFullYear()}/${pad(eventDate.getMonth()+1)}/${pad(eventDate.getDate())}` : 'No disponible';
+              const formattedTime = eventDate ? `${pad(eventDate.getHours())}:${pad(eventDate.getMinutes())}` : 'No disponible';
+              const html = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #eee; padding: 24px;">
+                  <h2>Hola ${user.first_name || user.email},</h2>
+                  <p>Tienes una nueva notificación en el sistema:</p>
+                  <p><strong>${notification.title}</strong></p>
+                  <p>${notification.message}</p>
+                  <p>Tipo: ${notification.type || 'General'}</p>
+                  <p>Fecha del evento: ${formattedDate}</p>
+                  <p>Hora del evento: ${formattedTime}</p>
+                  ${notification.action_url ? `<p><a href='${process.env.FRONTEND_URL || 'http://localhost:5173'}${notification.action_url}'>Ver más</a></p>` : ''}
+                  <hr>
+                  <small>Este mensaje fue generado automáticamente por el sistema Granme.</small>
+                </div>
+              `;
+              await emailService.transporter?.sendMail({
+                from: `"Sistema Granme" <${emailService.fromEmail}>`,
+                to: user.email,
+                subject,
+                html
+              });
+            }
+          } catch (emailError) {
+            console.error('Error al enviar email de notificación automática:', emailError);
+          }
+        }
       }
     } catch (error) {
       console.error('❌ Error generando notificaciones de partos:', error);
@@ -221,13 +312,53 @@ const notificationJob = {
           priority: daysSince >= 3 ? 'high' : 'normal',
           reference_type: 'heat',
           reference_id: heat.id,
-          action_url: `/heats?sow=${heat.sow_id}`
+          action_url: `/heats?sow=${heat.sow_id}`,
+          heat_date: heat.heat_date
         });
       }
 
       if (notifications.length > 0) {
-        await notificationModel.createBulk(notifications);
-        console.log(`   ✅ Creadas ${notifications.length} notificaciones de celos`);
+        const created = await notificationModel.createBulk(notifications);
+        console.log(`   ✅ Creadas ${created.length} notificaciones de celos`);
+        for (let i = 0; i < created.length; i++) {
+          const notification = created[i];
+          const original = notifications[i];
+          try {
+            const user = await userModel.findById(notification.user_id);
+            if (user && user.email) {
+              const subject = notification.title || 'Nueva notificación';
+              let eventDate = null;
+              if (original && original.heat_date) {
+                eventDate = new Date(original.heat_date);
+              }
+              const pad = n => n.toString().padStart(2, '0');
+              const formattedDate = eventDate ? `${eventDate.getFullYear()}/${pad(eventDate.getMonth()+1)}/${pad(eventDate.getDate())}` : 'No disponible';
+              const formattedTime = eventDate ? `${pad(eventDate.getHours())}:${pad(eventDate.getMinutes())}` : 'No disponible';
+              const html = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #eee; padding: 24px;">
+                  <h2>Hola ${user.first_name || user.email},</h2>
+                  <p>Tienes una nueva notificación en el sistema:</p>
+                  <p><strong>${notification.title}</strong></p>
+                  <p>${notification.message}</p>
+                  <p>Tipo: ${notification.type || 'General'}</p>
+                  <p>Fecha del evento: ${formattedDate}</p>
+                  <p>Hora del evento: ${formattedTime}</p>
+                  ${notification.action_url ? `<p><a href='${process.env.FRONTEND_URL || 'http://localhost:5173'}${notification.action_url}'>Ver más</a></p>` : ''}
+                  <hr>
+                  <small>Este mensaje fue generado automáticamente por el sistema Granme.</small>
+                </div>
+              `;
+              await emailService.transporter?.sendMail({
+                from: `"Sistema Granme" <${emailService.fromEmail}>`,
+                to: user.email,
+                subject,
+                html
+              });
+            }
+          } catch (emailError) {
+            console.error('Error al enviar email de notificación automática:', emailError);
+          }
+        }
       }
     } catch (error) {
       console.error('❌ Error generando notificaciones de celos:', error);
@@ -283,13 +414,53 @@ const notificationJob = {
           priority: 'normal',
           reference_type: 'pregnancy',
           reference_id: preg.id,
-          action_url: `/pregnancies/${preg.id}`
+          action_url: `/pregnancies/${preg.id}`,
+          conception_date: preg.conception_date
         });
       }
 
       if (notifications.length > 0) {
-        await notificationModel.createBulk(notifications);
-        console.log(`   ✅ Creadas ${notifications.length} notificaciones de confirmación`);
+        const created = await notificationModel.createBulk(notifications);
+        console.log(`   ✅ Creadas ${created.length} notificaciones de confirmación`);
+        for (let i = 0; i < created.length; i++) {
+          const notification = created[i];
+          const original = notifications[i];
+          try {
+            const user = await userModel.findById(notification.user_id);
+            if (user && user.email) {
+              const subject = notification.title || 'Nueva notificación';
+              let eventDate = null;
+              if (original && original.conception_date) {
+                eventDate = new Date(original.conception_date);
+              }
+              const pad = n => n.toString().padStart(2, '0');
+              const formattedDate = eventDate ? `${eventDate.getFullYear()}/${pad(eventDate.getMonth()+1)}/${pad(eventDate.getDate())}` : 'No disponible';
+              const formattedTime = eventDate ? `${pad(eventDate.getHours())}:${pad(eventDate.getMinutes())}` : 'No disponible';
+              const html = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px #eee; padding: 24px;">
+                  <h2>Hola ${user.first_name || user.email},</h2>
+                  <p>Tienes una nueva notificación en el sistema:</p>
+                  <p><strong>${notification.title}</strong></p>
+                  <p>${notification.message}</p>
+                  <p>Tipo: ${notification.type || 'General'}</p>
+                  <p>Fecha del evento: ${formattedDate}</p>
+                  <p>Hora del evento: ${formattedTime}</p>
+                  ${notification.action_url ? `<p><a href='${process.env.FRONTEND_URL || 'http://localhost:5173'}${notification.action_url}'>Ver más</a></p>` : ''}
+                  <hr>
+                  <small>Este mensaje fue generado automáticamente por el sistema Granme.</small>
+                </div>
+              `;
+              await emailService.transporter?.sendMail({
+                from: `"Sistema Granme" <${emailService.fromEmail}>`,
+                to: user.email,
+                subject,
+                html
+              });
+            }
+          } catch (emailError) {
+            console.error('Error al enviar email de notificación automática:', emailError);
+          }
+        }
       }
     } catch (error) {
       console.error('❌ Error generando notificaciones de confirmación:', error);
@@ -338,16 +509,15 @@ const notificationJob = {
   start: () => {
     // NO ejecutar inmediatamente al iniciar para evitar duplicados
     // Si necesitas ejecutar manualmente, usa el endpoint POST /api/notifications/generate
-    
-    // Ejecutar cada 6 horas: 0 */6 * * *
-    // Para testing, puedes usar: */5 * * * * (cada 5 minutos)
-    const schedule = '0 */6 * * *'; // Cada 6 horas
-    
+
+    // Ejecutar cada minuto: * * * * *
+    const schedule = '* * * * *'; // Cada minuto
+
     cron.schedule(schedule, () => {
       notificationJob.runAll();
     });
 
-    console.log('✅ Job de notificaciones configurado (cada 6 horas)');
+    console.log('✅ Job de notificaciones configurado (cada 10 minutos)');
     console.log('💡 Próxima ejecución automática según el cron schedule');
   }
 };

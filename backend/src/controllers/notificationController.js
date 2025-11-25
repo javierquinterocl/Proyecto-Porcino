@@ -1,4 +1,6 @@
 const notificationModel = require('../models/notificationModel');
+const userModel = require('../models/userModel');
+const emailService = require('../utils/emailService');
 
 const notificationController = {
   /**
@@ -132,6 +134,33 @@ const notificationController = {
       }
 
       const notification = await notificationModel.create(notificationData);
+
+      // Enviar email al usuario si existe y tiene email
+      try {
+        const user = await userModel.findById(notificationData.user_id);
+        if (user && user.email) {
+          // Construir el contenido del email
+          const subject = notification.title || 'Nueva notificación';
+          const html = `
+            <h2>Hola ${user.first_name || user.email},</h2>
+            <p>Tienes una nueva notificación en el sistema:</p>
+            <p><strong>${notification.title}</strong></p>
+            <p>${notification.message}</p>
+            <p>Tipo: ${notification.type || 'General'}</p>
+            ${notification.action_url ? `<p><a href='${notification.action_url}'>Ver más</a></p>` : ''}
+            <hr>
+            <small>Este mensaje fue generado automáticamente por el sistema Granme.</small>
+          `;
+          await emailService.transporter?.sendMail({
+            from: `"Sistema Granme" <${emailService.fromEmail}>`,
+            to: user.email,
+            subject,
+            html
+          });
+        }
+      } catch (emailError) {
+        console.error('Error al enviar email de notificación:', emailError);
+      }
 
       res.status(201).json({
         success: true,
